@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ concept.name }}</title>
+    <style>
+        .visualization-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f6fa;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .wave-canvas {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .equations {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Times New Roman', serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="visualization-container">
+        <h2>{{ concept.name }}</h2>
+        <div class="equations">
+            {% for equation in concept.equations %}
+            <div class="equation">{{ equation }}</div>
+            {% endfor %}
+        </div>
+        <div class="wave-canvas" id="wave-canvas"></div>
+        <div class="controls">
+            {% for var, unit in concept.variables.items() %}
+            <div class="control-group">
+                <label for="{{ var }}">{{ var }} ({{ unit }})</label>
+                <input type="range" id="{{ var }}" min="0" max="100" value="50">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        // Wave visualization code will be injected here
+        {{ params.javascript | safe }}
+    </script>
+</body>
+</html> 
