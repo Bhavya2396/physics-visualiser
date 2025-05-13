@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Body Diagram - Interactive Visualization</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --background-color: #f5f6fa;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+      --force-color-1: #e74c3c;
+      --force-color-2: #3498db;
+      --force-color-3: #2ecc71;
+      --force-color-4: #f1c40f;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(52, 152, 219, 0.1), transparent),
+                  radial-gradient(circle at bottom right, rgba(231, 76, 60, 0.1), transparent);
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 4fr 1fr;
+      overflow: hidden;
+    }
+    
+    .visualization-container {
+      padding: 1.5rem;
+      position: relative;
+      background: #f8f9fa;
+    }
+    
+    .canvas-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls-panel {
+      padding: 1rem;
+      background: var(--card-bg);
+      border-left: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    .force-control {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .force-control h3 {
+      font-size: 0.9rem;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .force-control h3 i {
+      width: 20px;
+    }
+
+    .slider-group {
+      margin-bottom: 0.5rem;
+    }
+
+    .slider-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-color);
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      background: linear-gradient(to right, var(--secondary-color), var(--accent-color));
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border: 2px solid var(--secondary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .value-display {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--secondary-color);
+      text-align: right;
+      margin-top: 0.25rem;
+    }
+
+    .equilibrium-display {
+      background: var(--primary-color);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: auto;
+    }
+
+    .equilibrium-display h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .equilibrium-value {
+      font-family: monospace;
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+    }
+
+    .equilibrium-value.balanced {
+      color: #2ecc71;
+    }
+
+    .equilibrium-value.unbalanced {
+      color: #e74c3c;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        aspect-ratio: auto;
+        height: auto;
+      }
+
+      .visualization-container {
+        height: 50vh;
+      }
+
+      .controls-panel {
+        border-left: none;
+        border-top: 1px solid #eee;
+        max-height: 50vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="visualization-container">
+      <div class="canvas-wrapper">
+        <canvas id="fbd-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="force-control" style="border-left: 4px solid var(--force-color-1)">
+        <h3><i class="fas fa-arrow-up"></i>Normal Force</h3>
+        <div class="slider-group">
+          <label>Magnitude (N)</label>
+          <input type="range" id="normal-magnitude" min="0" max="100" value="50" step="1">
+          <div class="value-display" id="normal-value">50 N</div>
+        </div>
+      </div>
+
+      <div class="force-control" style="border-left: 4px solid var(--force-color-2)">
+        <h3><i class="fas fa-arrow-down"></i>Weight</h3>
+        <div class="slider-group">
+          <label>Mass (kg)</label>
+          <input type="range" id="mass-slider" min="1" max="10" value="5" step="0.1">
+          <div class="value-display" id="weight-value">49 N</div>
+        </div>
+      </div>
+
+      <div class="force-control" style="border-left: 4px solid var(--force-color-3)">
+        <h3><i class="fas fa-arrows-alt-h"></i>Applied Force</h3>
+        <div class="slider-group">
+          <label>Magnitude (N)</label>
+          <input type="range" id="applied-magnitude" min="0" max="100" value="30" step="1">
+          <div class="value-display" id="applied-value">30 N</div>
+        </div>
+        <div class="slider-group">
+          <label>Angle (degrees)</label>
+          <input type="range" id="applied-angle" min="-180" max="180" value="0" step="1">
+          <div class="value-display" id="angle-value">0°</div>
+        </div>
+      </div>
+
+      <div class="force-control" style="border-left: 4px solid var(--force-color-4)">
+        <h3><i class="fas fa-arrows-alt-h"></i>Friction</h3>
+        <div class="slider-group">
+          <label>Coefficient (μ)</label>
+          <input type="range" id="friction-coefficient" min="0" max="1" value="0.3" step="0.01">
+          <div class="value-display" id="friction-value">0.3</div>
+        </div>
+      </div>
+
+      <div class="equilibrium-display">
+        <h3>Equilibrium Status</h3>
+        <div class="equilibrium-value" id="x-equilibrium">ΣFx = 0 N</div>
+        <div class="equilibrium-value" id="y-equilibrium">ΣFy = 0 N</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('fbd-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // State variables
+    let normalForce = 50;
+    let mass = 5;
+    let weight = mass * 9.81;
+    let appliedForce = 30;
+    let appliedAngle = 0;
+    let frictionCoeff = 0.3;
+    let isAnimating = true;
+    let time = 0;
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+
+    function drawArrow(fromX, fromY, toX, toY, color, width = 2) {
+      const headLength = 15;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      
+      // Draw line
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      
+      // Draw arrowhead
+      ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI/6),
+                toY - headLength * Math.sin(angle - Math.PI/6));
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI/6),
+                toY - headLength * Math.sin(angle + Math.PI/6));
+      
+      ctx.stroke();
+    }
+
+    function drawFBD() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const boxSize = 60;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw coordinate axes
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 150, centerY);
+      ctx.lineTo(centerX + 150, centerY);
+      ctx.moveTo(centerX, centerY - 150);
+      ctx.lineTo(centerX, centerY + 150);
+      ctx.stroke();
+      
+      // Draw box
+      ctx.fillStyle = '#34495e';
+      ctx.fillRect(centerX - boxSize/2, centerY - boxSize/2, boxSize, boxSize);
+      
+      // Calculate forces
+      const forceScale = 2; // Pixels per Newton
+      
+      // Normal force (up)
+      drawArrow(centerX, centerY, centerX, centerY - normalForce * forceScale,
+               'var(--force-color-1)', 3);
+      
+      // Weight (down)
+      drawArrow(centerX, centerY, centerX, centerY + weight * forceScale,
+               'var(--force-color-2)', 3);
+      
+      // Applied force (at angle)
+      const appliedX = appliedForce * forceScale * Math.cos(appliedAngle * Math.PI/180);
+      const appliedY = appliedForce * forceScale * Math.sin(appliedAngle * Math.PI/180);
+      drawArrow(centerX, centerY, centerX + appliedX, centerY - appliedY,
+               'var(--force-color-3)', 3);
+      
+      // Friction force
+      const frictionForce = normalForce * frictionCoeff;
+      const frictionDirection = appliedForce > 0 ? -1 : 1;
+      drawArrow(centerX, centerY, centerX + frictionForce * forceScale * frictionDirection,
+               centerY, 'var(--force-color-4)', 3);
+      
+      // Draw force labels
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#2c3e50';
+      
+      // Normal force label
+      ctx.fillText(`N = ${normalForce.toFixed(1)} N`, centerX + 10, centerY - 100);
+      
+      // Weight label
+      ctx.fillText(`W = ${weight.toFixed(1)} N`, centerX + 10, centerY + 100);
+      
+      // Applied force label
+      ctx.fillText(`F = ${appliedForce.toFixed(1)} N`, centerX + 70, centerY);
+      ctx.fillText(`θ = ${appliedAngle}°`, centerX + 70, centerY + 20);
+      
+      // Friction force label
+      ctx.fillText(`f = ${frictionForce.toFixed(1)} N`, centerX - 100, centerY + 20);
+      
+      // Calculate equilibrium
+      const netFx = appliedForce * Math.cos(appliedAngle * Math.PI/180) - 
+                   frictionForce * Math.sign(appliedForce);
+      const netFy = normalForce - weight - appliedForce * Math.sin(appliedAngle * Math.PI/180);
+      
+      // Update equilibrium display
+      const xEquilibrium = document.getElementById('x-equilibrium');
+      const yEquilibrium = document.getElementById('y-equilibrium');
+      
+      xEquilibrium.textContent = `ΣFx = ${netFx.toFixed(1)} N`;
+      yEquilibrium.textContent = `ΣFy = ${netFy.toFixed(1)} N`;
+      
+      xEquilibrium.className = 'equilibrium-value ' + 
+        (Math.abs(netFx) < 0.1 ? 'balanced' : 'unbalanced');
+      yEquilibrium.className = 'equilibrium-value ' + 
+        (Math.abs(netFy) < 0.1 ? 'balanced' : 'unbalanced');
+    }
+
+    function animate() {
+      if (!isAnimating) return;
+      time += 0.016;
+      drawFBD();
+      requestAnimationFrame(animate);
+    }
+
+    // Event Listeners
+    document.getElementById('normal-magnitude').addEventListener('input', (e) => {
+      normalForce = parseFloat(e.target.value);
+      document.getElementById('normal-value').textContent = `${normalForce} N`;
+    });
+
+    document.getElementById('mass-slider').addEventListener('input', (e) => {
+      mass = parseFloat(e.target.value);
+      weight = mass * 9.81;
+      document.getElementById('weight-value').textContent = `${weight.toFixed(1)} N`;
+    });
+
+    document.getElementById('applied-magnitude').addEventListener('input', (e) => {
+      appliedForce = parseFloat(e.target.value);
+      document.getElementById('applied-value').textContent = `${appliedForce} N`;
+    });
+
+    document.getElementById('applied-angle').addEventListener('input', (e) => {
+      appliedAngle = parseFloat(e.target.value);
+      document.getElementById('angle-value').textContent = `${appliedAngle}°`;
+    });
+
+    document.getElementById('friction-coefficient').addEventListener('input', (e) => {
+      frictionCoeff = parseFloat(e.target.value);
+      document.getElementById('friction-value').textContent = frictionCoeff.toFixed(2);
+    });
+
+    // Initialize visualization
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      animate();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</body>
+</html> 

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Potential Visualization</title>
+    <style>
+        :root {
+            --primary: #181c22;
+            --secondary: #23272e;
+            --accent: #4a9eff;
+            --danger: #ff4444;
+            --success: #2ecc71;
+            --text: #ffffff;
+            --electron: #4a9eff;
+            --chemical: #ffb347;
+            --glow: 0 0 16px 2px var(--accent);
+        }
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            width: 100vw;
+            max-width: 900px;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+        .visualization-panel {
+            background: var(--secondary);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 32px 32px 24px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+        .canvas-container {
+            background: var(--primary);
+            border-radius: 12px;
+            box-shadow: 0 0 0 2px #23272e, 0 8px 32px rgba(74,158,255,0.08);
+            overflow: hidden;
+            width: 700px;
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        canvas {
+            width: 700px;
+            height: 320px;
+            display: block;
+            background: #181c22;
+            border-radius: 12px;
+        }
+        .controls {
+            display: flex;
+            gap: 32px;
+            margin-top: 0;
+            margin-bottom: 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .control-group {
+            background: var(--primary);
+            border-radius: 10px;
+            padding: 18px 20px 14px 20px;
+            min-width: 210px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+        }
+        .control-label {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+        .slider {
+            width: 100%;
+            margin: 0;
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: -6px;
+            box-shadow: var(--glow);
+        }
+        .slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 16px 4px var(--accent);
+        }
+        .slider::-webkit-slider-runnable-track {
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+        }
+        .value-display {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: right;
+            margin-top: 0.1rem;
+            background: none;
+            padding: 0;
+        }
+        .meter-display {
+            background: var(--primary);
+            padding: 12px 24px 10px 24px;
+            border-radius: 10px;
+            margin-top: 0;
+            box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+            display: flex;
+            flex-direction: row;
+            gap: 32px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .meter {
+            text-align: center;
+            min-width: 110px;
+        }
+        .meter-label {
+            font-size: 13px;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+        .meter-value {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+        .play-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 0.7rem 1.5rem;
+            margin-top: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 16px 2px var(--accent);
+            transition: background 0.2s;
+        }
+        .play-btn.paused {
+            background: #23272e;
+            color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        @media (max-width: 900px) {
+            .canvas-container { width: 98vw; height: 44vw; min-width: 0; min-height: 0; max-width: 99vw; max-height: 60vw; }
+            canvas { width: 98vw; height: 44vw; }
+            .visualization-panel { padding: 12px 2vw 12px 2vw; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="visualization-panel">
+            <div class="canvas-container">
+                <canvas id="potential-canvas" width="700" height="320"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">Voltage (V)</div>
+                    <input type="range" class="slider" id="voltageSlider" min="1" max="12" value="6" step="0.1">
+                    <div class="value-display" id="voltageValue">6.0 V</div>
+                </div>
+            </div>
+            <div class="meter-display">
+                <div class="meter">
+                    <div class="meter-label">Current</div>
+                    <div class="meter-value" id="currentMeter">6.00 mA</div>
+                </div>
+                <div class="meter">
+                    <div class="meter-label">Battery Energy</div>
+                    <div class="meter-value" id="energyMeter">100%</div>
+                </div>
+            </div>
+            <button id="playPauseBtn" class="play-btn"><span id="playPauseIcon">⏸️</span> <span id="playPauseLabel">Pause</span></button>
+        </div>
+    </div>
+    <script>
+const canvas = document.getElementById('potential-canvas');
+const ctx = canvas.getContext('2d');
+let voltage = 6;
+const resistance = 1000; // Fixed resistance (Ω)
+let current = voltage / resistance * 1000; // mA
+let isAnimating = true;
+let animationId = null;
+let batteryEnergy = 1.0; // 1.0 = 100%
+const BATTERY_CAPACITY = 1.0;
+const CHEMICAL_PARTICLES = 18;
+let chemicalParticles = [];
+let electrons = [];
+
+function updateMeters() {
+    document.getElementById('voltageValue').textContent = `${voltage.toFixed(1)} V`;
+    document.getElementById('currentMeter').textContent = `${(voltage / resistance * 1000).toFixed(2)} mA`;
+    document.getElementById('energyMeter').textContent = `${Math.round(batteryEnergy*100)}%`;
+}
+
+function initializeChemicalParticles() {
+    chemicalParticles = [];
+    for (let i = 0; i < CHEMICAL_PARTICLES; i++) {
+        chemicalParticles.push({
+            x: 0.0 + Math.random()*1.0,
+            y: 0.18 + Math.random()*0.64,
+            phase: Math.random()*Math.PI*2
+        });
+    }
+}
+
+function initializeElectrons() {
+    electrons = [];
+    // Number of electrons depends on current
+    const num = Math.max(3, Math.floor((voltage / resistance) * 60));
+    for (let i = 0; i < num; i++) {
+        electrons.push({
+            dist: Math.random(), // will be scaled to path length in drawElectronsCircuit
+            speed: 0.004 + 0.012 * (voltage/12) * (1000/Math.max(resistance,1))
+        });
+    }
+}
+
+function drawBattery(x, y, width, height, cellCount = 2) {
+    // Battery body
+    ctx.save();
+    ctx.shadowColor = '#4a9eff';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#23272e';
+    ctx.strokeStyle = '#4a9eff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    // Battery cells
+    const cellGap = 8;
+    const cellW = (width - (cellCount+1)*cellGap)/cellCount;
+    for(let i=0;i<cellCount;i++) {
+        ctx.save();
+        ctx.fillStyle = i%2===0 ? '#4a9eff' : '#ffb347';
+        ctx.globalAlpha = 0.18 + 0.18*(batteryEnergy);
+        ctx.beginPath();
+        ctx.rect(x+cellGap+(cellW+cellGap)*i, y+10, cellW, height-20);
+        ctx.fill();
+        ctx.restore();
+    }
+    // Battery terminals
+    ctx.save();
+    ctx.fillStyle = '#4a9eff';
+    ctx.fillRect(x-10, y+height*0.18, 10, height*0.64);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(x+width, y+height*0.18, 10, height*0.64);
+    ctx.restore();
+    // Power meter (energy bar)
+    ctx.save();
+    ctx.fillStyle = '#2ecc71';
+    ctx.globalAlpha = 0.7;
+    ctx.fillRect(x+width+18, y+height-18, 18, -batteryEnergy*(height-36));
+    ctx.strokeStyle = '#2ecc71';
+    ctx.strokeRect(x+width+18, y+18, 18, height-36);
+    ctx.restore();
+    // Label
+    ctx.save();
+    ctx.font = 'bold 16px Inter, Arial';
+    ctx.fillStyle = '#4a9eff';
+    ctx.textAlign = 'center';
+    ctx.fillText('Battery', x+width/2, y-12);
+    ctx.restore();
+}
+
+function drawChemicalParticles(x, y, width, height) {
+    for (let i = 0; i < chemicalParticles.length; i++) {
+        const p = chemicalParticles[i];
+        // Animate in a loop inside the battery
+        if (batteryEnergy > 0 && isAnimating) {
+            p.x += 0.003 + 0.008*(voltage/12);
+            if (p.x > 1.0) p.x = 0.0;
+        }
+        const px = x + 18 + p.x*(width-36);
+        const py = y + 18 + p.y*(height-36) + Math.sin(performance.now()/400 + p.phase)*6;
+        ctx.save();
+        ctx.globalAlpha = batteryEnergy > 0 ? 0.7 : 0.2;
+        ctx.beginPath();
+        ctx.arc(px, py, 7, 0, Math.PI*2);
+        ctx.fillStyle = '#ffb347';
+        ctx.shadowColor = '#ffb347';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+function getPathSegments(path) {
+    // Returns array of {x1, y1, x2, y2, len}
+    const segs = [];
+    for (let i = 0; i < path.length - 1; i++) {
+        const x1 = path[i].x, y1 = path[i].y, x2 = path[i+1].x, y2 = path[i+1].y;
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        segs.push({x1, y1, x2, y2, len});
+    }
+    return segs;
+}
+
+function getPointOnPath(segs, totalLen, d) {
+    // d in [0, totalLen], returns {x, y} at distance d along the path
+    let dist = d;
+    for (let i = 0; i < segs.length; i++) {
+        if (dist <= segs[i].len) {
+            const segT = dist / segs[i].len;
+                return {
+                x: segs[i].x1 + (segs[i].x2 - segs[i].x1) * segT,
+                y: segs[i].y1 + (segs[i].y2 - segs[i].y1) * segT
+            };
+        }
+        dist -= segs[i].len;
+    }
+    // End of path
+    const last = segs[segs.length-1];
+    return {x: last.x2, y: last.y2};
+}
+
+function drawCircuitLayout() {
+    // Draw a rectangular circuit: battery (left), wires (top, right, bottom), bulb (right)
+    const bx = 80, by = 110, bwidth = 60, bheight = 100;
+    const bulbR = 28;
+    const bulbX = canvas.width - 80 - bulbR*2;
+    const bulbY = by + bheight/2 - bulbR;
+    // Wires (right angles)
+    ctx.save();
+    ctx.strokeStyle = '#4a9eff';
+    ctx.shadowColor = '#4a9eff';
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    // From battery + up
+    ctx.moveTo(bx + bwidth, by + bheight*0.25);
+    ctx.lineTo(bx + bwidth, by - 40);
+    // Top wire to bulb
+    ctx.lineTo(bulbX + bulbR, by - 40);
+    // Down to bulb top
+    ctx.lineTo(bulbX + bulbR, bulbY - 10);
+    // Bulb top node
+    ctx.moveTo(bulbX + bulbR, bulbY + bulbR*2 + 10);
+    // Down from bulb bottom
+    ctx.lineTo(bulbX + bulbR, by + bheight + 40);
+    // Bottom wire to battery -
+    ctx.lineTo(bx, by + bheight + 40);
+    ctx.lineTo(bx, by + bheight*0.75);
+    ctx.stroke();
+    ctx.restore();
+    // Connection nodes (dots)
+    const nodes = [
+        [bx + bwidth, by + bheight*0.25],
+        [bx + bwidth, by - 40],
+        [bulbX + bulbR, by - 40],
+        [bulbX + bulbR, bulbY - 10],
+        [bulbX + bulbR, bulbY + bulbR*2 + 10],
+        [bulbX + bulbR, by + bheight + 40],
+        [bx, by + bheight + 40],
+        [bx, by + bheight*0.75]
+    ];
+    ctx.save();
+    ctx.fillStyle = '#fff';
+    nodes.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#4a9eff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+    ctx.restore();
+    // Battery
+    drawBattery(bx, by, bwidth, bheight);
+    // Battery + and - labels
+    ctx.save();
+    ctx.font = 'bold 22px Inter, Arial';
+    ctx.fillStyle = '#4a9eff';
+    ctx.textAlign = 'center';
+    ctx.fillText('+', bx + bwidth + 18, by + bheight*0.25 + 8);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText('–', bx - 18, by + bheight*0.75 + 8);
+    ctx.restore();
+    // Bulb
+    drawBulbSymbol(bulbX, bulbY, bulbR);
+    // Chemical particles
+    drawChemicalParticles(bx, by, bwidth, bheight);
+    // Electrons
+    drawElectronsCircuit(bx, by, bwidth, bheight, bulbX, bulbY, bulbR);
+    // Battery depleted overlay
+    if (batteryEnergy <= 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#181c22ee';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+        ctx.font = 'bold 38px Inter, Arial';
+        ctx.fillStyle = '#ff4444';
+        ctx.textAlign = 'center';
+        ctx.fillText('Battery Depleted', canvas.width/2, canvas.height/2);
+        ctx.font = 'bold 20px Inter, Arial';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('Recharge to continue', canvas.width/2, canvas.height/2+38);
+        ctx.restore();
+    }
+}
+
+function drawBulbSymbol(x, y, r) {
+    // Bulb base
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.ellipse(x + r, y + r*2 + 10, r*0.5, r*0.18, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    // Bulb glow
+    ctx.save();
+    const glow = ctx.createRadialGradient(x+r, y+r, 0, x+r, y+r, r*2.2);
+    const power = voltage*current/1000; // mW
+    const glowAlpha = batteryEnergy > 0 ? (0.18+0.5*Math.min(1,power/60)) : 0.08;
+    glow.addColorStop(0, `rgba(255,255,100,${glowAlpha})`);
+    glow.addColorStop(1, 'rgba(255,255,100,0)');
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.arc(x+r, y+r, r*2.2, 0, Math.PI*2);
+    ctx.fillStyle = glow;
+    ctx.fill();
+    ctx.restore();
+    // Bulb body
+    ctx.save();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x+r, y+r, r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    // Filament
+    ctx.save();
+    ctx.strokeStyle = '#ffeb3b';
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = '#ffeb3b';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(x+r*0.7, y+r*1.2);
+    ctx.lineTo(x+r*1.3, y+r*1.2);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function drawElectronsCircuit(bx, by, bwidth, bheight, bulbX, bulbY, bulbR) {
+    // Define the rectangular path: battery - (bottom left), up to top left, right to bulb, down through bulb, down to bottom right, left to bottom left, up to battery +
+    const leftX = bx;
+    const rightX = bx + bwidth + 180 + 2*bulbR; // rightmost wire (bulb center)
+    const topY = by - 40;
+    const bottomY = by + bheight + 40;
+    const bulbCenterX = bulbX + bulbR;
+    const bulbTopY = bulbY - 10;
+    const bulbBottomY = bulbY + bulbR*2 + 10;
+    // Rectangle path: battery - (bottom left), up, right, down, left, up to battery +
+    const path = [
+        // Start at battery - (bottom left)
+        {x: leftX, y: by + bheight*0.75},
+        {x: leftX, y: topY}, // up to top left
+        {x: bulbCenterX, y: topY}, // right to bulb top
+        {x: bulbCenterX, y: bulbTopY}, // down to bulb top
+        {x: bulbCenterX, y: bulbBottomY}, // through bulb
+        {x: bulbCenterX, y: bottomY}, // down to bottom wire
+        {x: leftX, y: bottomY}, // left to bottom left
+        {x: leftX, y: by + bheight*0.75} // up to battery +
+    ];
+    const segs = getPathSegments(path);
+    const totalLen = segs.reduce((sum, s) => sum + s.len, 0);
+    electrons.forEach(e => {
+        if (batteryEnergy > 0 && isAnimating) {
+            e.dist = (e.dist === undefined ? Math.random() * totalLen : e.dist);
+            e.dist += e.speed * totalLen;
+            if (e.dist > totalLen) e.dist -= totalLen;
+        } else if (e.dist === undefined) {
+            e.dist = Math.random() * totalLen;
+        }
+        // Main electron
+        const pt = getPointOnPath(segs, totalLen, e.dist);
+        // Trailing effect
+        for (let trail = 0; trail < 6; trail++) {
+            let trailDist = e.dist - trail*totalLen*0.03;
+            if (trailDist < 0) trailDist += totalLen;
+            const trailPt = getPointOnPath(segs, totalLen, trailDist);
+            ctx.save();
+            const alpha = 0.18 * (1 - trail/6);
+            ctx.beginPath();
+            ctx.arc(trailPt.x, trailPt.y, 7 - trail, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(74,158,255,${alpha})`;
+            ctx.shadowColor = '#4a9eff';
+            ctx.shadowBlur = 8 - trail*1.2;
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 7, 0, Math.PI*2);
+        ctx.fillStyle = '#4a9eff';
+        ctx.shadowColor = '#4a9eff';
+        ctx.shadowBlur = 8;
+        ctx.globalAlpha = batteryEnergy > 0 ? 1 : 0.3;
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawCircuitLayout();
+}
+
+function animate() {
+    if (isAnimating && batteryEnergy > 0) {
+        batteryEnergy -= 0.0002 * current;
+        if (batteryEnergy < 0) batteryEnergy = 0;
+    }
+    draw();
+    updateMeters();
+    animationId = requestAnimationFrame(animate);
+}
+
+function updateVisualization() {
+    current = voltage / resistance * 1000;
+    initializeElectrons();
+    if (animationId) cancelAnimationFrame(animationId);
+    animate();
+}
+
+document.getElementById('voltageSlider').addEventListener('input', e => {
+    voltage = parseFloat(e.target.value);
+    updateVisualization();
+});
+document.getElementById('playPauseBtn').addEventListener('click', () => {
+    isAnimating = !isAnimating;
+    const icon = document.getElementById('playPauseIcon');
+    const label = document.getElementById('playPauseLabel');
+    if (isAnimating) {
+        icon.textContent = '⏸️';
+        label.textContent = 'Pause';
+        animate();
+    } else {
+        icon.textContent = '▶️';
+        label.textContent = 'Play';
+        cancelAnimationFrame(animationId);
+        draw();
+    }
+});
+
+        window.addEventListener('load', () => {
+    initializeChemicalParticles();
+    initializeElectrons();
+    animate();
+});
+window.addEventListener('resize', () => {
+    location.reload();
+        });
+    </script>
+</body>
+</html> 

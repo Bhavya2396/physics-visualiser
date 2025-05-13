@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Current and Circuit</title>
+    <style>
+        :root {
+            --primary: #181c22;
+            --secondary: #232a36;
+            --accent: #4a9eff;
+            --text: #fff;
+            --glow: #4a9eff;
+            --heat: #ff4444;
+        }
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            padding: 32px 0;
+        }
+        .visualization-container {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            background: var(--secondary);
+            border-radius: 15px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            align-items: center;
+        }
+        .animation-container {
+            width: 700px;
+            height: 160px;
+            background: var(--primary);
+            border-radius: 12px;
+            position: relative;
+            overflow: visible;
+            margin: 0 auto 0 auto;
+            box-shadow: 0 0 24px 2px #222a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .conductor {
+            position: absolute;
+            left: 40px;
+            top: 60px;
+            width: 620px;
+            height: 40px;
+            background: linear-gradient(90deg, #232a36 0%, #4a9eff 100%);
+            border-radius: 20px;
+            box-shadow: 0 0 32px 8px var(--glow), 0 0 0 2px #222a;
+            z-index: 1;
+        }
+        .electron {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4a9eff;
+            border-radius: 50%;
+            box-shadow: 0 0 16px 4px #4a9eff, 0 0 2px 1px #fff2;
+            z-index: 2;
+            transition: background 0.2s;
+        }
+        .heat-particle {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            background: var(--heat);
+            border-radius: 50%;
+            opacity: 0.5;
+            z-index: 0;
+        }
+        .meter {
+            background: var(--secondary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 12px;
+            box-shadow: 0 0 18px 2px #222a;
+        }
+        .meter-value {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 2px;
+            animation: meter-pulse 1.2s infinite alternate;
+        }
+        @keyframes meter-pulse {
+            0% { text-shadow: 0 0 8px var(--accent); }
+            100% { text-shadow: 0 0 18px var(--accent); }
+        }
+        .control-panel {
+            background: var(--primary);
+            border-radius: 10px;
+            padding: 24px 20px;
+            min-width: 260px;
+            display: flex;
+            flex-direction: row;
+            gap: 24px;
+            justify-content: center;
+        }
+        .control-group {
+            margin-bottom: 0;
+            background: var(--secondary);
+            border-radius: 8px;
+            padding: 16px 12px 10px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 160px;
+        }
+        .control-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--accent);
+        }
+        .control-slider {
+            width: 100%;
+            margin: 8px 0 0 0;
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+        }
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: -6px;
+        }
+        .control-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .control-value {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 15px;
+            margin-top: 2px;
+        }
+        @media (max-width: 900px) {
+            .visualization-container { padding: 12px; }
+            .animation-container { width: 98vw; min-width: 0; }
+            .conductor { width: 90vw; min-width: 0; left: 5vw; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="visualization-container">
+            <div class="animation-container" id="currentAnimation"></div>
+            <div class="formula" style="margin: 24px auto 0 auto; background: var(--secondary); border-radius: 8px; text-align: center; padding: 14px 0 10px 0; width: 340px; box-shadow: 0 0 18px 2px #222a;">
+                <span style="font-family: 'Courier New', monospace; font-size: 20px; color: var(--accent);">I = Q / t</span>
+            </div>
+            <div class="control-panel">
+                <div class="control-group">
+                    <div class="control-label">Current Flow Rate</div>
+                    <input type="range" class="control-slider" id="currentRate" min="1" max="100" value="50">
+                    <div class="control-value" id="currentRateValue">50 electrons/s</div>
+                </div>
+            </div>
+            <div class="meter">
+                <div>Current</div>
+                <div class="meter-value" id="currentMeter">0.00 A</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ElectronAnimation {
+            constructor(container) {
+                this.container = container;
+                this.electrons = [];
+                this.isRunning = false;
+                this.currentRate = 50;
+                this.lanes = 6;
+                this.initialize();
+            }
+            
+            initialize() {
+                // Set up the animation container
+                this.container.style.position = 'relative';
+                
+                // Create conductor visualization
+                this.conductor = document.createElement('div');
+                this.conductor.className = 'conductor';
+                this.container.appendChild(this.conductor);
+                
+                this.setupEventListeners();
+                this.animate();
+            }
+            
+            setupEventListeners() {
+                // Current rate control
+                document.getElementById('currentRate').addEventListener('input', (e) => {
+                    this.currentRate = parseInt(e.target.value);
+                    this.updateDisplay();
+                });
+            }
+            
+            createElectron(lane) {
+                const electron = document.createElement('div');
+                electron.className = 'electron';
+                electron.style.left = '0px';
+                electron.style.top = `${16 + lane * 6}px`;
+                this.conductor.appendChild(electron);
+                return {
+                    element: electron,
+                    position: 0,
+                    speed: 2.5 + this.currentRate / 40,
+                    lane: lane
+                };
+            }
+            
+            updateElectrons() {
+                // Remove electrons that have reached the end
+                this.electrons = this.electrons.filter(electron => {
+                    if (electron.position > 600) {
+                        this.conductor.removeChild(electron.element);
+                        return false;
+                    }
+                    return true;
+                });
+                
+                // Number of lanes (fixed)
+                const lanes = this.lanes;
+                // Add new electrons based on current rate (spread across lanes)
+                const electronsPerFrame = Math.max(1, Math.floor(this.currentRate / 20));
+                for (let i = 0; i < electronsPerFrame; i++) {
+                    if (Math.random() < this.currentRate / 100) {
+                        const lane = i % lanes;
+                        this.electrons.push(this.createElectron(lane));
+                    }
+                }
+                
+                // Update electron positions
+                this.electrons.forEach(electron => {
+                    electron.position += electron.speed;
+                    electron.element.style.left = `${electron.position}px`;
+                });
+            }
+            
+            updateDisplay() {
+                // For demo, let 1 electron/s = 0.01A
+                const current = this.currentRate * 0.01;
+                document.getElementById('currentMeter').textContent = `${current.toFixed(2)} A`;
+                document.getElementById('currentRateValue').textContent = `${this.currentRate} electrons/s`;
+            }
+            
+            animate() {
+                this.updateElectrons();
+                this.updateDisplay();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize animation when the page loads
+        window.addEventListener('load', () => {
+            const container = document.getElementById('currentAnimation');
+            new ElectronAnimation(container);
+        });
+    </script>
+</body>
+</html> 

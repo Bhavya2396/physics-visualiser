@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factors Affecting Electric Current and Resistance</title>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #2a2a2a;
+            --accent: #4a9eff;
+            --text: #ffffff;
+            --heat: #ff4444;
+        }
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 16px;
+        }
+        .factors-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 32px;
+            justify-items: center;
+            align-items: stretch;
+        }
+        .factor-card {
+            background: var(--secondary);
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            overflow: hidden;
+            color: var(--text);
+            width: 100%;
+            max-width: 370px;
+            min-width: 270px;
+            display: flex;
+            flex-direction: column;
+            justify-content: stretch;
+        }
+        .factor-content {
+            padding: 22px 18px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .factor-visualization {
+            height: 180px;
+            background: #23272e;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .factor-controls {
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .factor-slider {
+            width: 100%;
+            margin: 0;
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+        }
+        .factor-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: -6px;
+        }
+        .factor-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .factor-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .factor-slider::-ms-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .factor-slider::-webkit-slider-runnable-track {
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+        }
+        .factor-slider::-moz-range-track {
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+        }
+        .factor-slider::-ms-fill-lower {
+            background: #222c3c;
+            border-radius: 4px;
+        }
+        .factor-slider::-ms-fill-upper {
+            background: #4a9eff;
+            border-radius: 4px;
+        }
+        .factor-slider:focus {
+            outline: none;
+        }
+        .factor-slider:focus::-webkit-slider-thumb {
+            box-shadow: 0 0 0 3px rgba(74,158,255,0.3);
+        }
+        .factor-value {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+        .material-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0 0 0;
+            flex-wrap: wrap;
+        }
+        .material-button {
+            padding: 8px 12px;
+            background: var(--secondary);
+            border: none;
+            border-radius: 5px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .material-button.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .material-button:hover {
+            background: var(--accent);
+        }
+        .conductor {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            background: rgba(74,158,255,0.08);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        .electron {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            pointer-events: none;
+            transition: transform 0.1s;
+        }
+        .electron::after {
+            content: '-';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #23272e;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        .temperature-indicator {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .heat-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--heat);
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 10px var(--heat);
+        }
+        .length-indicator, .width-indicator {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .length-line, .width-line {
+            position: absolute;
+            background: var(--accent);
+            opacity: 0.3;
+        }
+        .length-line {
+            width: 2px;
+            height: 80%;
+            top: 10%;
+        }
+        .width-line {
+            height: 2px;
+            width: 80%;
+            left: 10%;
+        }
+        .length-label, .width-label {
+            position: absolute;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px #111;
+            pointer-events: none;
+        }
+        .field-line {
+            position: absolute;
+            width: 2px;
+            height: 80%;
+            background: #a459d1;
+            opacity: 0.18;
+            top: 10%;
+            pointer-events: none;
+        }
+        .field-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 10px solid #a459d1;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .current-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 12px solid var(--accent);
+            pointer-events: none;
+        }
+        .current-label {
+            position: absolute;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px #111;
+            pointer-events: none;
+        }
+        @media (max-width: 900px) {
+            .factors-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+                gap: 24px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="factors-container">
+            <!-- Material Factor -->
+            <div class="factor-card">
+                <div class="factor-content">
+                    <div class="factor-visualization" id="materialVisualization">
+                        <div class="conductor">
+                            <div class="electric-field"></div>
+                            <div class="current-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="material-selector">
+                        <button class="material-button active" data-material="copper">Copper</button>
+                        <button class="material-button" data-material="aluminum">Aluminum</button>
+                        <button class="material-button" data-material="iron">Iron</button>
+                        <button class="material-button" data-material="silver">Silver</button>
+                    </div>
+                    <div class="factor-controls"></div>
+                </div>
+            </div>
+            <!-- Length Factor -->
+            <div class="factor-card">
+                <div class="factor-content">
+                    <div class="factor-visualization" id="lengthVisualization">
+                        <div class="conductor">
+                            <div class="electric-field"></div>
+                            <div class="current-indicator"></div>
+                            <div class="length-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="factor-controls">
+                        <label>Length (m):</label>
+                        <input type="range" class="factor-slider" id="lengthSlider" min="1" max="10" value="5" step="0.1">
+                        <div class="factor-value" id="lengthValue">5.0 m</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Cross-Sectional Area Factor -->
+            <div class="factor-card">
+                <div class="factor-content">
+                    <div class="factor-visualization" id="areaVisualization">
+                        <div class="conductor">
+                            <div class="electric-field"></div>
+                            <div class="current-indicator"></div>
+                            <div class="width-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="factor-controls">
+                        <label>Area (mm²):</label>
+                        <input type="range" class="factor-slider" id="areaSlider" min="1" max="20" value="10" step="0.5">
+                        <div class="factor-value" id="areaValue">10.0 mm²</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Temperature Factor -->
+            <div class="factor-card">
+                <div class="factor-content">
+                    <div class="factor-visualization" id="temperatureVisualization">
+                        <div class="conductor">
+                            <div class="electric-field"></div>
+                            <div class="current-indicator"></div>
+                            <div class="temperature-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="factor-controls">
+                        <label>Temperature (°C):</label>
+                        <input type="range" class="factor-slider" id="temperatureSlider" min="0" max="100" value="25" step="1">
+                        <div class="factor-value" id="temperatureValue">25°C</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        class FactorsAnimation {
+            constructor() {
+                this.material = 'copper';
+                this.length = 5;
+                this.area = 10;
+                this.temperature = 25;
+                
+                this.resistivityValues = {
+                    'copper': 1.68e-8,
+                    'aluminum': 2.82e-8,
+                    'iron': 9.70e-8,
+                    'silver': 1.59e-8
+                };
+                
+                this.temperatureCoefficients = {
+                    'copper': 0.00386,
+                    'aluminum': 0.0039,
+                    'iron': 0.005,
+                    'silver': 0.0038
+                };
+                
+                this.initialize();
+            }
+            
+            initialize() {
+                // Set up material buttons
+                this.setupMaterialButtons();
+                
+                // Set up sliders
+                this.setupSliders();
+                
+                // Initialize visualizations
+                this.initializeMaterialVisualization();
+                this.initializeLengthVisualization();
+                this.initializeAreaVisualization();
+                this.initializeTemperatureVisualization();
+                
+                // Calculate initial resistance
+                this.calculateResistance();
+            }
+            
+            setupMaterialButtons() {
+                const buttons = document.querySelectorAll('.material-button');
+                buttons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        buttons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        this.material = button.dataset.material;
+                        this.calculateResistance();
+                        const container = document.getElementById('materialVisualization');
+                        const conductor = container.querySelector('.conductor');
+                        this.animateMaterialElectrons(conductor, true);
+                    });
+                });
+            }
+            
+            setupSliders() {
+                // Length slider
+                const lengthSlider = document.getElementById('lengthSlider');
+                lengthSlider.addEventListener('input', (e) => {
+                    this.length = parseFloat(e.target.value);
+                    document.getElementById('lengthValue').textContent = `${this.length.toFixed(1)} m`;
+                    this.updateLengthVisualization();
+                    this.calculateResistance();
+                });
+                
+                // Area slider
+                const areaSlider = document.getElementById('areaSlider');
+                areaSlider.addEventListener('input', (e) => {
+                    this.area = parseFloat(e.target.value);
+                    document.getElementById('areaValue').textContent = `${this.area.toFixed(1)} mm²`;
+                    this.updateAreaVisualization();
+                    this.calculateResistance();
+                });
+                
+                // Temperature slider
+                const temperatureSlider = document.getElementById('temperatureSlider');
+                temperatureSlider.addEventListener('input', (e) => {
+                    this.temperature = parseInt(e.target.value);
+                    document.getElementById('temperatureValue').textContent = `${this.temperature}°C`;
+                    this.updateTemperatureVisualization();
+                    this.calculateResistance();
+                });
+            }
+            
+            initializeMaterialVisualization() {
+                const container = document.getElementById('materialVisualization');
+                const conductor = container.querySelector('.conductor');
+                const electricField = conductor.querySelector('.electric-field');
+                const currentIndicator = conductor.querySelector('.current-indicator');
+                
+                // Create electric field lines
+                this.createElectricFieldLines(electricField);
+                
+                // Create current indicator
+                this.createCurrentIndicator(currentIndicator);
+                
+                // Create electrons
+                for (let i = 0; i < 20; i++) {
+                    const electron = document.createElement('div');
+                    electron.className = 'electron';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    electron.style.left = `${x}%`;
+                    electron.style.top = `${y}%`;
+                    
+                    conductor.appendChild(electron);
+                }
+                
+                // Start animation
+                this.animateMaterialElectrons(conductor, true);
+            }
+            
+            initializeLengthVisualization() {
+                const container = document.getElementById('lengthVisualization');
+                const conductor = container.querySelector('.conductor');
+                const electricField = conductor.querySelector('.electric-field');
+                const currentIndicator = conductor.querySelector('.current-indicator');
+                const lengthIndicator = conductor.querySelector('.length-indicator');
+                
+                // Create electric field lines
+                this.createElectricFieldLines(electricField);
+                
+                // Create current indicator
+                this.createCurrentIndicator(currentIndicator);
+                
+                // Create length lines
+                const numLines = 5;
+                for (let i = 0; i < numLines; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'length-line';
+                    line.style.left = `${20 + i * 15}%`;
+                    lengthIndicator.appendChild(line);
+                    
+                    // Add label
+                    const label = document.createElement('div');
+                    label.className = 'length-label';
+                    label.textContent = 'L';
+                    label.style.left = `${20 + i * 15}%`;
+                    label.style.top = '5%';
+                    lengthIndicator.appendChild(label);
+                }
+                
+                // Create electrons
+                for (let i = 0; i < 15; i++) {
+                    const electron = document.createElement('div');
+                    electron.className = 'electron';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    electron.style.left = `${x}%`;
+                    electron.style.top = `${y}%`;
+                    
+                    conductor.appendChild(electron);
+                }
+                
+                // Start animation
+                this.animateLengthElectrons(conductor, true);
+            }
+            
+            initializeAreaVisualization() {
+                const container = document.getElementById('areaVisualization');
+                const conductor = container.querySelector('.conductor');
+                const electricField = conductor.querySelector('.electric-field');
+                const currentIndicator = conductor.querySelector('.current-indicator');
+                const widthIndicator = conductor.querySelector('.width-indicator');
+                
+                // Create electric field lines
+                this.createElectricFieldLines(electricField);
+                
+                // Create current indicator
+                this.createCurrentIndicator(currentIndicator);
+                
+                // Create width lines
+                const numLines = 5;
+                for (let i = 0; i < numLines; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'width-line';
+                    line.style.top = `${20 + i * 15}%`;
+                    widthIndicator.appendChild(line);
+                    
+                    // Add label
+                    const label = document.createElement('div');
+                    label.className = 'width-label';
+                    label.textContent = 'A';
+                    label.style.left = '5%';
+                    label.style.top = `${20 + i * 15}%`;
+                    widthIndicator.appendChild(label);
+                }
+                
+                // Create electrons
+                for (let i = 0; i < 15; i++) {
+                    const electron = document.createElement('div');
+                    electron.className = 'electron';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    electron.style.left = `${x}%`;
+                    electron.style.top = `${y}%`;
+                    
+                    conductor.appendChild(electron);
+                }
+                
+                // Start animation
+                this.animateAreaElectrons(conductor, true);
+            }
+            
+            initializeTemperatureVisualization() {
+                const container = document.getElementById('temperatureVisualization');
+                const conductor = container.querySelector('.conductor');
+                const electricField = conductor.querySelector('.electric-field');
+                const currentIndicator = conductor.querySelector('.current-indicator');
+                const temperatureIndicator = conductor.querySelector('.temperature-indicator');
+                
+                // Create electric field lines
+                this.createElectricFieldLines(electricField);
+                
+                // Create current indicator
+                this.createCurrentIndicator(currentIndicator);
+                
+                // Create heat particles
+                for (let i = 0; i < 30; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'heat-particle';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    particle.style.left = `${x}%`;
+                    particle.style.top = `${y}%`;
+                    
+                    temperatureIndicator.appendChild(particle);
+                }
+                
+                // Create electrons
+                for (let i = 0; i < 15; i++) {
+                    const electron = document.createElement('div');
+                    electron.className = 'electron';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    electron.style.left = `${x}%`;
+                    electron.style.top = `${y}%`;
+                    
+                    conductor.appendChild(electron);
+                }
+                
+                // Start animation
+                this.animateTemperatureParticles(conductor);
+                this.animateTemperatureElectrons(conductor, true);
+            }
+            
+            createElectricFieldLines(container) {
+                // Create electric field lines
+                const numLines = 5;
+                for (let i = 0; i < numLines; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'field-line';
+                    line.style.left = `${20 + i * 15}%`;
+                    container.appendChild(line);
+                    
+                    // Add arrow
+                    const arrow = document.createElement('div');
+                    arrow.className = 'field-arrow';
+                    arrow.style.left = `${20 + i * 15}%`;
+                    arrow.style.top = '15%';
+                    container.appendChild(arrow);
+                }
+            }
+            
+            createCurrentIndicator(container) {
+                // Create current arrow
+                const arrow = document.createElement('div');
+                arrow.className = 'current-arrow';
+                arrow.style.left = '50%';
+                arrow.style.top = '50%';
+                container.appendChild(arrow);
+                
+                // Add label
+                const label = document.createElement('div');
+                label.className = 'current-label';
+                label.textContent = 'I';
+                label.style.left = '50%';
+                label.style.top = '40%';
+                container.appendChild(label);
+            }
+            
+            animateMaterialElectrons(container, forceRestart = false) {
+                const electrons = container.querySelectorAll('.electron');
+                electrons.forEach(electron => {
+                    if (forceRestart) {
+                        const path = this.generatePath();
+                        electron.dataset.path = JSON.stringify(path);
+                        electron.dataset.progress = '0';
+                        electron.style.left = `${path.start.x}%`;
+                        electron.style.top = `${path.start.y}%`;
+                    }
+                    const animate = () => {
+                        let progress = parseFloat(electron.dataset.progress);
+                        const resistivity = this.resistivityValues[this.material];
+                        const maxResistivity = Math.max(...Object.values(this.resistivityValues));
+                        const speedFactor = 1 - (resistivity / maxResistivity);
+                        progress += 0.003 + (speedFactor * 0.007);
+                        if (progress > 1) {
+                            progress = 0;
+                            const newPath = this.generatePath();
+                            electron.dataset.path = JSON.stringify(newPath);
+                            electron.style.left = `${newPath.start.x}%`;
+                            electron.style.top = `${newPath.start.y}%`;
+                        }
+                        electron.dataset.progress = progress.toString();
+                        const position = this.calculateBezierPoint(progress, JSON.parse(electron.dataset.path));
+                        electron.style.left = `${position.x}%`;
+                        electron.style.top = `${position.y}%`;
+                        requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                });
+            }
+            
+            animateLengthElectrons(container, forceRestart = false) {
+                const electrons = container.querySelectorAll('.electron');
+                electrons.forEach(electron => {
+                    if (forceRestart) {
+                        const path = this.generatePath();
+                        electron.dataset.path = JSON.stringify(path);
+                        electron.dataset.progress = '0';
+                        electron.style.left = `${path.start.x}%`;
+                        electron.style.top = `${path.start.y}%`;
+                    }
+                    const animate = () => {
+                        let progress = parseFloat(electron.dataset.progress);
+                        const speedFactor = 1 / this.length;
+                        progress += 0.005 * speedFactor;
+                        if (progress > 1) {
+                            progress = 0;
+                            const newPath = this.generatePath();
+                            electron.dataset.path = JSON.stringify(newPath);
+                            electron.style.left = `${newPath.start.x}%`;
+                            electron.style.top = `${newPath.start.y}%`;
+                        }
+                        electron.dataset.progress = progress.toString();
+                        const position = this.calculateBezierPoint(progress, JSON.parse(electron.dataset.path));
+                        electron.style.left = `${position.x}%`;
+                        electron.style.top = `${position.y}%`;
+                        requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                });
+            }
+            
+            animateAreaElectrons(container, forceRestart = false) {
+                const electrons = container.querySelectorAll('.electron');
+                electrons.forEach(electron => {
+                    if (forceRestart) {
+                        const path = this.generatePath();
+                        electron.dataset.path = JSON.stringify(path);
+                        electron.dataset.progress = '0';
+                        electron.style.left = `${path.start.x}%`;
+                        electron.style.top = `${path.start.y}%`;
+                    }
+                    const animate = () => {
+                        let progress = parseFloat(electron.dataset.progress);
+                        const speedFactor = this.area / 10;
+                        progress += 0.005 * speedFactor;
+                        if (progress > 1) {
+                            progress = 0;
+                            const newPath = this.generatePath();
+                            electron.dataset.path = JSON.stringify(newPath);
+                            electron.style.left = `${newPath.start.x}%`;
+                            electron.style.top = `${newPath.start.y}%`;
+                        }
+                        electron.dataset.progress = progress.toString();
+                        const position = this.calculateBezierPoint(progress, JSON.parse(electron.dataset.path));
+                        electron.style.left = `${position.x}%`;
+                        electron.style.top = `${position.y}%`;
+                        requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                });
+            }
+            
+            animateTemperatureParticles(container) {
+                const particles = container.querySelectorAll('.heat-particle');
+                
+                particles.forEach(particle => {
+                    // Random movement
+                    const moveX = () => {
+                        const currentX = parseFloat(particle.style.left);
+                        // Movement speed based on temperature
+                        const speedFactor = this.temperature / 25; // Normalize to room temperature
+                        const newX = currentX + (Math.random() - 0.5) * 3 * speedFactor;
+                        
+                        if (newX >= 10 && newX <= 90) {
+                            particle.style.left = `${newX}%`;
+                        }
+                    };
+                    
+                    const moveY = () => {
+                        const currentY = parseFloat(particle.style.top);
+                        // Movement speed based on temperature
+                        const speedFactor = this.temperature / 25; // Normalize to room temperature
+                        const newY = currentY + (Math.random() - 0.5) * 3 * speedFactor;
+                        
+                        if (newY >= 10 && newY <= 90) {
+                            particle.style.top = `${newY}%`;
+                        }
+                    };
+                    
+                    // Move every 100ms
+                    setInterval(moveX, 100);
+                    setInterval(moveY, 100);
+                });
+            }
+            
+            animateTemperatureElectrons(container, forceRestart = false) {
+                const electrons = container.querySelectorAll('.electron');
+                electrons.forEach(electron => {
+                    if (forceRestart) {
+                        const path = this.generatePath();
+                        electron.dataset.path = JSON.stringify(path);
+                        electron.dataset.progress = '0';
+                        electron.style.left = `${path.start.x}%`;
+                        electron.style.top = `${path.start.y}%`;
+                    }
+                    const animate = () => {
+                        let progress = parseFloat(electron.dataset.progress);
+                        const tempFactor = 1 / (1 + (this.temperature - 25) * 0.01);
+                        progress += 0.005 * tempFactor;
+                        if (progress > 1) {
+                            progress = 0;
+                            const newPath = this.generatePath();
+                            electron.dataset.path = JSON.stringify(newPath);
+                            electron.style.left = `${newPath.start.x}%`;
+                            electron.style.top = `${newPath.start.y}%`;
+                        }
+                        electron.dataset.progress = progress.toString();
+                        const position = this.calculateBezierPoint(progress, JSON.parse(electron.dataset.path));
+                        electron.style.left = `${position.x}%`;
+                        electron.style.top = `${position.y}%`;
+                        requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                });
+            }
+            
+            generatePath() {
+                // Generate a path for an electron to follow
+                const start = {
+                    x: 10 + Math.random() * 20,
+                    y: 10 + Math.random() * 80
+                };
+                
+                const end = {
+                    x: 70 + Math.random() * 20,
+                    y: 10 + Math.random() * 80
+                };
+                
+                // Control points for cubic Bezier curve
+                const cp1 = {
+                    x: start.x + (end.x - start.x) * 0.3,
+                    y: start.y + (Math.random() - 0.5) * 30
+                };
+                
+                const cp2 = {
+                    x: start.x + (end.x - start.x) * 0.7,
+                    y: end.y + (Math.random() - 0.5) * 30
+                };
+                
+                return {
+                    start,
+                    end,
+                    cp1,
+                    cp2
+                };
+            }
+            
+            calculateBezierPoint(t, path) {
+                // Calculate point on cubic Bezier curve
+                const x = Math.pow(1 - t, 3) * path.start.x +
+                         3 * Math.pow(1 - t, 2) * t * path.cp1.x +
+                         3 * (1 - t) * Math.pow(t, 2) * path.cp2.x +
+                         Math.pow(t, 3) * path.end.x;
+                
+                const y = Math.pow(1 - t, 3) * path.start.y +
+                         3 * Math.pow(1 - t, 2) * t * path.cp1.y +
+                         3 * (1 - t) * Math.pow(t, 2) * path.cp2.y +
+                         Math.pow(t, 3) * path.end.y;
+                
+                return { x, y };
+            }
+            
+            updateLengthVisualization() {
+                const container = document.getElementById('lengthVisualization');
+                const lengthIndicator = container.querySelector('.length-indicator');
+                
+                // Clear existing lines
+                lengthIndicator.innerHTML = '';
+                
+                // Create length lines based on length value
+                const numLines = Math.max(3, Math.floor(this.length / 2));
+                for (let i = 0; i < numLines; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'length-line';
+                    line.style.left = `${20 + i * (60 / (numLines - 1))}%`;
+                    lengthIndicator.appendChild(line);
+                    
+                    // Add label
+                    const label = document.createElement('div');
+                    label.className = 'length-label';
+                    label.textContent = 'L';
+                    label.style.left = `${20 + i * (60 / (numLines - 1))}%`;
+                    label.style.top = '5%';
+                    lengthIndicator.appendChild(label);
+                }
+                
+                // Update electron count based on length
+                this.updateElectronCount(container, Math.max(5, Math.floor(this.length * 2)));
+            }
+            
+            updateAreaVisualization() {
+                const container = document.getElementById('areaVisualization');
+                const widthIndicator = container.querySelector('.width-indicator');
+                
+                // Clear existing lines
+                widthIndicator.innerHTML = '';
+                
+                // Create width lines based on area value
+                const numLines = Math.max(3, Math.floor(this.area / 3));
+                for (let i = 0; i < numLines; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'width-line';
+                    line.style.top = `${20 + i * (60 / (numLines - 1))}%`;
+                    widthIndicator.appendChild(line);
+                    
+                    // Add label
+                    const label = document.createElement('div');
+                    label.className = 'width-label';
+                    label.textContent = 'A';
+                    label.style.left = '5%';
+                    label.style.top = `${20 + i * (60 / (numLines - 1))}%`;
+                    widthIndicator.appendChild(label);
+                }
+                
+                // Update electron count based on area
+                this.updateElectronCount(container, Math.max(5, Math.floor(this.area * 1.5)));
+            }
+            
+            updateTemperatureVisualization() {
+                const container = document.getElementById('temperatureVisualization');
+                const temperatureIndicator = container.querySelector('.temperature-indicator');
+                
+                // Clear existing particles
+                temperatureIndicator.innerHTML = '';
+                
+                // Create heat particles based on temperature
+                const numParticles = Math.max(10, Math.floor(this.temperature / 3));
+                for (let i = 0; i < numParticles; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'heat-particle';
+                    
+                    // Random position
+                    const x = 10 + Math.random() * 80;
+                    const y = 10 + Math.random() * 80;
+                    
+                    particle.style.left = `${x}%`;
+                    particle.style.top = `${y}%`;
+                    
+                    temperatureIndicator.appendChild(particle);
+                }
+                
+                // Start animation
+                this.animateTemperatureParticles(container);
+                
+                // Update electron count based on temperature (fewer electrons at higher temps due to increased resistance)
+                const electronCount = Math.max(5, Math.floor(20 - (this.temperature - 25) * 0.2));
+                this.updateElectronCount(container, electronCount);
+            }
+            
+            updateElectronCount(container, count) {
+                const conductor = container.querySelector('.conductor');
+                const existingElectrons = conductor.querySelectorAll('.electron');
+                
+                // Remove excess electrons
+                if (existingElectrons.length > count) {
+                    for (let i = count; i < existingElectrons.length; i++) {
+                        existingElectrons[i].remove();
+                    }
+                } 
+                // Add more electrons
+                else if (existingElectrons.length < count) {
+                    for (let i = existingElectrons.length; i < count; i++) {
+                        const electron = document.createElement('div');
+                        electron.className = 'electron';
+                        
+                        // Random position
+                        const x = 10 + Math.random() * 80;
+                        const y = 10 + Math.random() * 80;
+                        
+                        electron.style.left = `${x}%`;
+                        electron.style.top = `${y}%`;
+                        
+                        conductor.appendChild(electron);
+                    }
+                }
+                // Always re-animate all electrons after update
+                if (container.id === 'materialVisualization') {
+                    this.animateMaterialElectrons(conductor, true);
+                } else if (container.id === 'lengthVisualization') {
+                    this.animateLengthElectrons(conductor, true);
+                } else if (container.id === 'areaVisualization') {
+                    this.animateAreaElectrons(conductor, true);
+                } else if (container.id === 'temperatureVisualization') {
+                    this.animateTemperatureElectrons(conductor, true);
+                }
+            }
+            
+            calculateResistance() {
+                // Get base resistivity
+                const baseResistivity = this.resistivityValues[this.material];
+                
+                // Calculate temperature factor
+                const tempFactor = 1 + this.temperatureCoefficients[this.material] * (this.temperature - 20);
+                
+                // Calculate resistance
+                // R = ρ × L / A
+                // Convert area from mm² to m²
+                const areaInMeters = this.area * 1e-6;
+                const resistance = (baseResistivity * tempFactor * this.length) / areaInMeters;
+                
+                // Update display
+                document.getElementById('resistanceMeter').textContent = `${resistance.toFixed(2)} Ω`;
+            }
+        }
+
+        // Initialize animation when the page loads
+        window.addEventListener('load', () => {
+            new FactorsAnimation();
+        });
+    </script>
+</body>
+</html> 

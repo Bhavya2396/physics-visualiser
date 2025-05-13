@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Circuit Visualization</title>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #2a2a2a;
+            --accent: #4a9eff;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #visualization-container {
+            width: 100%;
+            height: 600px;
+            margin: 20px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: var(--accent);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.active {
+            background: var(--accent);
+            transform: scale(1.2);
+        }
+
+        .description {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: var(--secondary);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .description h2 {
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .description p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .equation {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            padding: 10px;
+            background: rgba(74, 159, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="description">
+        <h2>RC Circuit Visualization</h2>
+        <p>This visualization demonstrates the behavior of a Resistor-Capacitor (RC) circuit, showing charging and discharging processes.</p>
+        <div class="equation">V = V₀(1-e^(-t/RC))</div>
+    </div>
+
+    <div id="visualization-container"></div>
+
+    <div class="controls">
+        <button class="nav-btn" id="prev">Previous</button>
+        <button class="nav-btn" id="next">Next</button>
+    </div>
+
+    <div class="step-indicator">
+        <div class="step-dot active" data-step="0"></div>
+        <div class="step-dot" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+    </div>
+
+    <script type="module">
+        import RCCircuitVisual from './rc-circuit-visual.js';
+
+        const visual = new RCCircuitVisual('visualization-container');
+        let currentStep = 0;
+
+        function updateStep(step) {
+            currentStep = step;
+            visual.updateVisualization(step);
+            
+            // Update step indicators
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === step);
+            });
+
+            // Update button states
+            document.getElementById('prev').disabled = step === 0;
+            document.getElementById('next').disabled = step === 3;
+        }
+
+        // Navigation buttons
+        document.getElementById('prev').addEventListener('click', () => {
+            if (currentStep > 0) updateStep(currentStep - 1);
+        });
+
+        document.getElementById('next').addEventListener('click', () => {
+            if (currentStep < 3) updateStep(currentStep + 1);
+        });
+
+        // Step dots
+        document.querySelectorAll('.step-dot').forEach((dot, index) => {
+            dot.addEventListener('click', () => updateStep(index));
+        });
+
+        // Initialize
+        updateStep(0);
+    </script>
+</body>
+</html> 

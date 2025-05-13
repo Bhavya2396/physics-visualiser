@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohm's Law - Accurate Physics Visualization</title>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #2a2a2a;
+            --accent: #4a9eff;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        #visualization-container {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            width: 60%;
+            height: 100%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s ease;
+            z-index: 5;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 600px;
+            overflow: visible;
+        }
+
+        .text-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50px;
+            width: 35%;
+            transform: translateY(-50%);
+            background: rgba(26, 26, 26, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s ease;
+            z-index: 10;
+        }
+
+        .text-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .text-overlay h2 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #ffffff;
+            background: linear-gradient(90deg, #4a9eff, #a459d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease 0.2s;
+        }
+
+        .text-overlay.active h2 {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .text-overlay p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #ffffff;
+            margin-bottom: 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease 0.4s;
+        }
+
+        .text-overlay.active p {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .text-highlight {
+            color: #4a9eff;
+            font-weight: 500;
+        }
+
+        .equation {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            padding: 15px;
+            margin: 15px 0;
+            background: rgba(74, 159, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.5s ease 0.6s;
+        }
+
+        .text-overlay.active .equation {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .key-points {
+            margin-top: 20px;
+            padding-left: 20px;
+            border-left: 2px solid rgba(74, 159, 255, 0.3);
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease 0.6s;
+        }
+
+        .text-overlay.active .key-points {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .key-point {
+            margin: 8px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+
+        .text-overlay.active .key-point {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .text-overlay.active .key-point:nth-child(1) { transition-delay: 0.7s; }
+        .text-overlay.active .key-point:nth-child(2) { transition-delay: 0.8s; }
+        .text-overlay.active .key-point:nth-child(3) { transition-delay: 0.9s; }
+
+        .unit {
+            font-style: italic;
+            color: #a459d1;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 50px;
+            left: 50px;
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: var(--accent);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .step-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--secondary);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .step-dot.active {
+            background: var(--accent);
+            transform: scale(1.2);
+        }
+
+        .voice-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 2;
+        }
+
+        .voice-btn {
+            background: var(--accent);
+            border: none;
+            color: var(--text);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animation classes */
+        .electron {
+            animation: electronFlow 2s linear infinite;
+        }
+
+        .field-line {
+            animation: fieldPulse 2s ease-in-out infinite;
+        }
+
+        .atom {
+            animation: thermalVibration 0.5s ease-in-out infinite;
+        }
+
+        .heat-particle {
+            animation: heatRise 1s ease-out forwards;
+        }
+
+        @keyframes electronFlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes fieldPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes thermalVibration {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(0, 2px); }
+        }
+
+        @keyframes heatRise {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        /* Text animation keyframes */
+        @keyframes fadeSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                text-shadow: 0 0 10px rgba(74, 159, 255, 0.2);
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(74, 159, 255, 0.5);
+            }
+        }
+
+        @keyframes highlightText {
+            0% {
+                background-position: -100% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .definition-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 800px;
+            background: rgba(26, 26, 26, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s ease;
+        }
+
+        .definition-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .definition-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #4a9eff, #a459d1, #4a9eff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: highlightText 3s linear infinite;
+        }
+
+        .definition-content {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #ffffff;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .definition-content.active {
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeSlideIn 0.8s ease forwards;
+        }
+
+        .definition-highlight {
+            color: #4a9eff;
+            font-weight: bold;
+            animation: glowPulse 2s infinite;
+        }
+
+        .definition-equation {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(74, 159, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .definition-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .definition-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .definition-points {
+            margin-top: 20px;
+            padding-left: 20px;
+        }
+
+        .definition-point {
+            margin: 10px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .definition-point.active {
+            opacity: 1;
+            transform: translateX(0);
+            animation: fadeSlideIn 0.5s ease forwards;
+        }
+
+        .definition-point:nth-child(1) { animation-delay: 0.2s; }
+        .definition-point:nth-child(2) { animation-delay: 0.4s; }
+        .definition-point:nth-child(3) { animation-delay: 0.6s; }
+        .definition-point:nth-child(4) { animation-delay: 0.8s; }
+
+        .practical-examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(74, 159, 255, 0.1);
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease 0.8s;
+        }
+
+        .text-overlay.active .practical-examples {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .practical-examples h3 {
+            color: #4a9eff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .practical-examples ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .practical-examples li {
+            margin: 8px 0;
+            color: #ffffff;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+
+        .text-overlay.active .practical-examples li:nth-child(1) { transition-delay: 0.9s; }
+        .text-overlay.active .practical-examples li:nth-child(2) { transition-delay: 1.0s; }
+        .text-overlay.active .practical-examples li:nth-child(3) { transition-delay: 1.1s; }
+
+        .text-overlay.active .practical-examples li {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .text-highlight {
+            color: #4a9eff;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: rgba(74, 159, 255, 0.1);
+        }
+
+        /* Add styles for circuit visualization */
+        #circuit {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .electron {
+            offset-path: path('M-30 0 L-30 -80 L100 -80 L100 0 L230 0 L230 80 L-30 80 Z');
+            offset-rotate: auto;
+        }
+
+        .control-panel rect {
+            transition: all 0.3s ease;
+        }
+
+        .control-panel circle {
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .control-panel circle:hover {
+            transform: scale(1.1);
+        }
+
+        #electron-path {
+            transition: opacity 0.5s ease;
+        }
+
+        /* Ensure Ohm's Law step is visible */
+        #ohms-law-text.active ~ #visualization-container {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        #ohms-law-text.active ~ #visualization-container #circuit {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        /* Control panel styles */
+        .control-panel {
+            pointer-events: auto !important;
+        }
+
+        .slider-handle {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+        }
+
+        /* Measurement display styles */
+        #voltage-display, #current-display, #resistance-display {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* Debug styles */
+        #ohms-law-text.active ~ #visualization-container svg {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Update step transitions */
+        #visualization-container.step-0 { transform: translate(0, -50%); }
+        #visualization-container.step-1 { transform: translate(-20px, -50%); }
+        #visualization-container.step-2 { transform: translate(-40px, -50%); }
+        #visualization-container.step-3 { transform: translate(-60px, -50%); }
+        #visualization-container.step-4 { transform: translate(-80px, -50%); }
+
+        /* Add transition styles */
+        .text-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #visualization-container {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .step-dot {
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Prevent interaction during transitions */
+        .transitioning {
+            pointer-events: none;
+        }
+
+        /* Ensure circuit visibility */
+        #ohms-law-text.active ~ #visualization-container {
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: 100 !important;
+        }
+
+        #ohms-law-text.active ~ #visualization-container #circuit {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        /* Circuit component styles */
+        .battery, .resistor, .ammeter {
+            transition: all 0.3s ease;
+        }
+
+        .battery:hover, .resistor:hover, .ammeter:hover {
+            filter: brightness(1.2);
+        }
+
+        /* Electron animation */
+        .electron {
+            offset-path: path('M-30 0 L-30 -80 L100 -80 L100 0 L230 0 L230 80 L-30 80 Z');
+            offset-rotate: auto;
+            animation: moveAlongPath 3s linear infinite;
+        }
+
+        @keyframes moveAlongPath {
+            0% { offset-distance: 0%; }
+            100% { offset-distance: 100%; }
+        }
+
+        /* Control panel styles */
+        .control-panel {
+            pointer-events: auto !important;
+        }
+
+        .slider-handle {
+            cursor: pointer !important;
+        }
+
+        /* Measurement display styles */
+        #voltage-display, #current-display, #resistance-display {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* Wire glow effect */
+        #electron-path {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="visualization-container"></div>
+
+    <div class="step-indicator">
+        <div class="step-dot" data-step="0"></div>
+        <div class="step-dot" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+        <div class="step-dot" data-step="4"></div>
+    </div>
+
+    <div class="voice-controls">
+        <button class="voice-btn" id="voice-toggle">🔊</button>
+    </div>
+
+    <div id="current-text" class="text-overlay">
+        <h2>Understanding Electric Flow</h2>
+        <p>Imagine tiny particles called electrons inside a wire. These electrons can move through the wire, creating what we call an electric current. But what makes them move? Just like water in a pipe won't flow unless there's a reason to move, electrons need a driving force.</p>
+        <div class="key-points">
+            <div class="key-point">• <span class="text-highlight">Basic Concept:</span> Electric current is the flow of electrons through a conductor</div>
+            <div class="key-point">• <span class="text-highlight">Key Question:</span> What makes these electrons move?</div>
+            <div class="key-point">• <span class="text-highlight">Important Note:</span> Like water, electrons need a force to flow</div>
+        </div>
+    </div>
+
+    <div id="potential-text" class="text-overlay">
+        <h2>The Driving Force: Electric Potential</h2>
+        <p>To understand what makes electrons move, let's compare it to something familiar - water flow. Water naturally flows from higher to lower levels due to gravitational potential energy. Similarly, electrons flow from higher to lower electric potential.</p>
+        <div class="key-points">
+            <div class="key-point">• <span class="text-highlight">The Concept:</span> Electric potential is stored energy at a point in a circuit</div>
+            <div class="key-point">• <span class="text-highlight">The Difference:</span> Electrons flow from high to low potential points</div>
+            <div class="key-point">• <span class="text-highlight">The Source:</span> Batteries maintain this potential difference</div>
+        </div>
+        <div class="practical-examples">
+            <h3>Water Analogy Explained:</h3>
+            <ul>
+                <li>• Higher water level = Higher electric potential</li>
+                <li>• Water wanting to fall = Electrons wanting to flow</li>
+                <li>• Height difference = Potential difference (voltage)</li>
+                <li>• Flow rate = Current strength</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="voltage-text" class="text-overlay">
+        <h2>Voltage: Measuring Potential Difference</h2>
+        <p>When we measure the difference between two electric potentials, we call this voltage. Just as the height difference between two water levels determines how strongly water will flow, voltage determines how strongly electrons will flow in a circuit.</p>
+        <div class="key-points">
+            <div class="key-point">• <span class="text-highlight">Definition:</span> Voltage measures the difference between electric potentials</div>
+            <div class="key-point">• <span class="text-highlight">Relationship:</span> Greater voltage means greater potential difference</div>
+            <div class="key-point">• <span class="text-highlight">Measurement:</span> 1 Volt = 1 Joule of energy per Coulomb of charge</div>
+        </div>
+        <div class="practical-examples">
+            <h3>Common Examples of Potential Differences:</h3>
+            <ul>
+                <li>• AA Battery: 1.5V (difference between terminals)</li>
+                <li>• USB Port: 5V (safe for electronics)</li>
+                <li>• Wall Socket: 120V/230V (dangerous potential difference!)</li>
+            </ul>
+        </div>
+        <div class="key-insight">
+            <h3>Key Insight:</h3>
+            <p>Think of voltage as "electric pressure" - just as water pressure pushes water through a pipe, voltage pushes electrons through a wire. The higher the voltage, the stronger the push!</p>
+        </div>
+    </div>
+
+    <div id="resistance-text" class="text-overlay">
+        <h2>Resistance: The Opposition to Flow</h2>
+        <p>As electrons flow through a material, they encounter opposition - this is resistance. Different materials resist electron flow differently, just like different pipes might restrict water flow differently.</p>
+        <div class="key-points">
+            <div class="key-point">• <span class="text-highlight">What is it?</span> The material's opposition to electron flow</div>
+            <div class="key-point">• <span class="text-highlight">Materials:</span> Conductors have low resistance, insulators have high resistance</div>
+            <div class="key-point">• <span class="text-highlight">Effect:</span> Higher resistance reduces current for the same voltage</div>
+        </div>
+        <div class="practical-examples">
+            <h3>Material Examples:</h3>
+            <ul>
+                <li>• Copper wire: Low resistance (good conductor)</li>
+                <li>• Silicon: Medium resistance (semiconductor)</li>
+                <li>• Rubber: High resistance (insulator)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="ohms-law-text" class="text-overlay">
+        <h2>Ohm's Law: Putting It All Together</h2>
+        <p>Now we can connect all these concepts. Ohm's Law shows how voltage (the push), current (the flow), and resistance (the opposition) work together in a circuit.</p>
+        <div class="equation">V = I × R</div>
+        <div class="key-points">
+            <div class="key-point">• <span class="text-highlight">The Relationship:</span> Voltage = Current × Resistance</div>
+            <div class="key-point">• <span class="text-highlight">Balance:</span> More resistance needs more voltage for same current</div>
+            <div class="key-point">• <span class="text-highlight">Control:</span> We can control current by adjusting voltage or resistance</div>
+        </div>
+        <div class="practical-examples">
+            <h3>Real-World Applications:</h3>
+            <ul>
+                <li>• LED Light: 3V through 100Ω = 0.03A current</li>
+                <li>• Phone Charger: 5V through 2Ω = 2.5A current</li>
+                <li>• Electric Heater: 120V through 12Ω = 10A current</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prev">Previous</button>
+        <button class="nav-btn" id="next">Next</button>
+    </div>
+
+    <div id="current-definition" class="definition-container">
+    <script>
+        // Voice synthesis setup with better controls
+        const synth = window.speechSynthesis;
+        let currentUtterance = null;
+        let isSpeaking = false;
+
+        function addNaturalPauses(text) {
+            // Add slight pauses after sentences
+            text = text.replace(/\./g, '... ');
+            // Add slight pauses after commas
+            text = text.replace(/,/g, ', ');
+            // Add emphasis pauses before key points
+            text = text.replace(/Important Note:/g, '... Important Note:');
+            text = text.replace(/Key Question:/g, '... Key Question:');
+            text = text.replace(/Basic Concept:/g, '... Basic Concept:');
+            return text;
+        }
+
+        function speakText(text) {
+            // Cancel any ongoing speech
+            if (synth.speaking) {
+                synth.cancel();
+            }
+
+            // Clean up and prepare the text
+            text = text.replace(/•/g, '')
+                      .replace(/\n/g, '. ')
+                      .replace(/\s+/g, ' ')
+                      .trim();
+
+            // Add natural pauses and emphasis
+            text = addNaturalPauses(text);
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Configure speech settings for more natural sound
+            currentUtterance.rate = 0.85;  // Slightly slower for better clarity
+            currentUtterance.pitch = 1.1;  // Slightly higher pitch for engagement
+            currentUtterance.volume = 1.0;
+            
+            // Get available voices and select a good English voice
+            let voices = synth.getVoices();
+            const preferredVoices = [
+                'Google US English Female',
+                'Microsoft Zira',
+                'Microsoft Sarah',
+                'en-US-JennyNeural',
+                'en-US',
+                'en_US'
+            ];
+
+            // Find the best available voice
+            let selectedVoice = voices.find(voice => 
+                preferredVoices.some(preferred => 
+                    voice.name.includes(preferred) || voice.lang.includes(preferred)
+                )
+            );
+
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+
+            // Add speech events
+            currentUtterance.onstart = () => {
+                isSpeaking = true;
+                updateVoiceButton();
+            };
+
+            currentUtterance.onend = () => {
+                isSpeaking = false;
+                updateVoiceButton();
+            };
+
+            currentUtterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                isSpeaking = false;
+                updateVoiceButton();
+            };
+
+            // Add dynamic prosody for more natural speech
+            currentUtterance.onboundary = (event) => {
+                if (event.name === 'word') {
+                    // Adjust rate dynamically for natural rhythm
+                    currentUtterance.rate = 0.85 + Math.random() * 0.1;
+                }
+            };
+
+            synth.speak(currentUtterance);
+        }
+
+        // Function to prepare text for speaking with natural transitions
+        function prepareTextForSpeech(activeText) {
+            const title = activeText.querySelector('h2')?.textContent || '';
+            const description = activeText.querySelector('p')?.textContent || '';
+            const keyPoints = Array.from(activeText.querySelectorAll('.key-point'))
+                .map(point => point.textContent.trim())
+                .join('. ');
+            const examples = Array.from(activeText.querySelectorAll('.practical-examples li'))
+                .map(example => example.textContent.trim())
+                .join('. ');
+
+            // Add more conversational transitions based on the current step
+            const transitions = {
+                '#current-text': [
+                    "Hey, let's explore something fascinating - electric current.",
+                    "You know what's really cool about this?",
+                    "Here are some key things I'd like you to remember:"
+                ],
+                '#potential-text': [
+                    "Now, here's where it gets interesting.",
+                    "Think of it like water flowing downhill - let me explain.",
+                    "Let me highlight the important points:"
+                ],
+                '#voltage-text': [
+                    "Alright, now we're getting to the good part.",
+                    "This is where voltage comes into play - it's actually pretty neat.",
+                    "Let me break this down for you:"
+                ],
+                '#resistance-text': [
+                    "Here's something you might find interesting.",
+                    "It's kind of like trying to walk through water - there's always some resistance.",
+                    "Let me share some key insights:"
+                ],
+                '#ohms-law-text': [
+                    "This is where everything comes together - it's pretty amazing!",
+                    "Don't worry if it seems complex at first, I'll explain it step by step.",
+                    "Here's what makes this so important:"
+                ]
+            };
+
+            const currentTransitions = transitions[activeText.id] || [];
+
+            // Construct speech text with natural, conversational transitions
+            const speechText = [
+                currentTransitions[0] || "Let me explain this concept.",
+                description,
+                currentTransitions[1] || "Here's how it works.",
+                currentTransitions[2] || "Let me share the key points:",
+                keyPoints,
+                examples ? "Let me give you some real-world examples that might help:" : "",
+                examples
+            ].filter(Boolean).join('. ');
+
+            return speechText;
+        }
+
+        // Update step function to include automatic voice trigger
+        function updateStep() {
+            // Stop any ongoing speech
+            if (synth.speaking) {
+                synth.cancel();
+                isSpeaking = false;
+                updateVoiceButton();
+            }
+
+            // Remove active class from all overlays and dots
+            document.querySelectorAll('.text-overlay, .step-dot').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Get current step
+            const step = steps[currentStep];
+            console.log('Current step:', step);
+
+            // First fade out current visualization
+            const container = document.getElementById('visualization-container');
+            container.style.opacity = '0';
+
+            // After fade out, update content
+            setTimeout(() => {
+                // Update text overlay first
+                const textElement = document.querySelector(step.text);
+                if (textElement) {
+                    textElement.classList.add('active');
+                    // Start speaking after a short delay to allow the animation to complete
+                    setTimeout(() => {
+                        const speechText = prepareTextForSpeech(textElement);
+                        speakText(speechText);
+                    }, 500);
+                }
+                
+                // Update step indicator
+                const stepDot = document.querySelector(`.step-dot[data-step="${currentStep}"]`);
+                if (stepDot) {
+                    stepDot.classList.add('active');
+                }
+
+                // Update visualization
+                container.innerHTML = step.svg;
+                
+                // Fade in the new visualization
+                setTimeout(() => {
+                    container.style.opacity = '1';
+                    
+                    // Run the step script
+                    if (step.script) {
+                        try {
+                            eval(step.script);
+                            console.log('Step script executed successfully');
+                        } catch (error) {
+                            console.error('Error executing step script:', error);
+                        }
+                    }
+                }, 100);
+            }, 300);
+        }
+
+        // Voice button now only toggles speech
+        document.getElementById('voice-toggle').addEventListener('click', () => {
+            if (isSpeaking) {
+                synth.cancel();
+                isSpeaking = false;
+                updateVoiceButton();
+            } else {
+                const activeText = document.querySelector('.text-overlay.active');
+                if (activeText) {
+                    const speechText = prepareTextForSpeech(activeText);
+                    speakText(speechText);
+                }
+            }
+        });
+
+        // Ensure voices are loaded
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => {
+                console.log('Voices loaded:', synth.getVoices().length);
+            };
+        }
+
+        // Add styles for voice button
+        const voiceStyles = document.createElement('style');
+        voiceStyles.textContent = `
+            .voice-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: var(--accent);
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+
+            .voice-btn:hover {
+                transform: scale(1.1);
+                background: #3a8eff;
+            }
+
+            .voice-btn.speaking {
+                background: #ff4444;
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(voiceStyles);
+
+        // Stop speaking when changing steps
+        function updateStep() {
+            // Stop any ongoing speech when changing steps
+            if (synth.speaking) {
+                synth.cancel();
+                isSpeaking = false;
+                updateVoiceButton();
+            }
+
+            // ... rest of the updateStep function ...
+        }
+
+        // Visualization states
+        let currentStep = 0;
+        const steps = [
+            {
+                text: '#current-text',
+                svg: `
+                    <svg viewBox="0 0 800 600">
+                        <defs>
+                            <filter id="electron-glow">
+                                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <linearGradient id="wire-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#4a9eff;stop-opacity:0.3"/>
+                                <stop offset="50%" style="stop-color:#4a9eff;stop-opacity:0.6"/>
+                                <stop offset="100%" style="stop-color:#4a9eff;stop-opacity:0.3"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="800" height="600" fill="#1a1a1a"/>
+                        <rect x="100" y="250" width="600" height="100" fill="url(#wire-gradient)" opacity="0.3">
+                            <animate attributeName="opacity" values="0.3;0.5;0.3" dur="2s" repeatCount="indefinite"/>
+                        </rect>
+                        <g id="electron-container"></g>
+                    </svg>
+                `,
+                script: `
+                    let electronCount = 15;
+                    let electrons = [];
+                    let animationFrameId = null;
+
+                    class Electron {
+                        constructor() {
+                            this.x = Math.random() * 600 + 100;
+                            this.y = 300;
+                            this.speed = 2 + Math.random();
+                            this.element = this.createElement();
+                        }
+
+                        createElement() {
+                            const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                            const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            core.setAttribute('r', '4');
+                            core.setAttribute('fill', '#4a9eff');
+                            core.setAttribute('filter', 'url(#electron-glow)');
+                            group.appendChild(core);
+                            document.getElementById('electron-container').appendChild(group);
+                            return group;
+                        }
+
+                        update() {
+                            this.x += this.speed;
+                            if (this.x > 700) {
+                                this.x = 100;
+                            }
+                            const core = this.element.lastChild;
+                            core.setAttribute('cx', this.x);
+                            core.setAttribute('cy', this.y + Math.sin(this.x * 0.01) * 10);
+                        }
+                    }
+
+                    function createElectrons() {
+                        for (let i = 0; i < electronCount; i++) {
+                            electrons.push(new Electron());
+                        }
+                    }
+
+                    function animate() {
+                        electrons.forEach(electron => electron.update());
+                        animationFrameId = requestAnimationFrame(animate);
+                    }
+
+                    createElectrons();
+                    animate();
+                `
+            },
+            {
+                text: '#potential-text',
+                svg: `
+                    <svg viewBox="0 0 800 600">
+                        <defs>
+                            <linearGradient id="water-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#4a9eff;stop-opacity:0.8"/>
+                                <stop offset="100%" style="stop-color:#4a9eff;stop-opacity:0.4"/>
+                            </linearGradient>
+                            <filter id="water-ripple">
+                                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="turbulence"/>
+                                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="5" />
+                            </filter>
+                            <filter id="flow-blur">
+                                <feGaussianBlur stdDeviation="1.5"/>
+                            </filter>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                    refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+                            </marker>
+                        </defs>
+                        <rect width="800" height="600" fill="#1a1a1a"/>
+                        
+                        <!-- Higher Potential Tank -->
+                        <g class="high-potential">
+                            <rect x="100" y="100" width="200" height="400" fill="#2a2a2a" stroke="#4a9eff"/>
+                            <rect id="high-water" class="water-level" x="100" y="200" width="200" height="300" fill="url(#water-gradient)" filter="url(#water-ripple)">
+                                <animate attributeName="height" 
+                                    values="300;280;260;240;220" 
+                                    dur="4s" 
+                                    repeatCount="indefinite"/>
+                                <animate attributeName="y" 
+                                    values="200;220;240;260;280" 
+                                    dur="4s" 
+                                    repeatCount="indefinite"/>
+                            </rect>
+                            <text x="200" y="150" fill="#ffffff" text-anchor="middle" font-size="14">Higher Potential</text>
+                            <text x="200" y="170" fill="#4a9eff" text-anchor="middle" font-size="12">(Like Higher Water Level)</text>
+                        </g>
+
+                        <!-- Lower Potential Tank -->
+                        <g class="low-potential">
+                            <rect x="500" y="300" width="200" height="200" fill="#2a2a2a" stroke="#4a9eff"/>
+                            <rect id="low-water" class="water-level" x="500" y="400" width="200" height="100" fill="url(#water-gradient)" filter="url(#water-ripple)">
+                                <animate attributeName="height" 
+                                    values="100;120;140;160;180" 
+                                    dur="4s" 
+                                    repeatCount="indefinite"/>
+                                <animate attributeName="y"
+                                    values="400;380;360;340;320"
+                                    dur="4s"
+                                    repeatCount="indefinite"/>
+                            </rect>
+                            <text x="600" y="350" fill="#ffffff" text-anchor="middle" font-size="14">Lower Potential</text>
+                            <text x="600" y="370" fill="#4a9eff" text-anchor="middle" font-size="12">(Like Lower Water Level)</text>
+                        </g>
+
+                        <!-- Connecting Pipe with Flow Path -->
+                        <path id="flow-path" class="pipe" d="M 300 450 C 350 450, 375 450, 400 400 S 450 350, 500 350" 
+                            stroke="#4a9eff" stroke-width="20" fill="none" opacity="0.5"/>
+                        
+                        <!-- Dynamic Water Flow Container -->
+                        <g id="water-flow"></g>
+
+                        <!-- Water Level Indicators -->
+                        <g class="level-indicators">
+                            <line x1="80" y1="200" x2="80" y2="500" stroke="#666666" stroke-width="1" stroke-dasharray="4"/>
+                            <text x="70" y="350" fill="#666666" text-anchor="end" font-size="12">Water Level</text>
+                            
+                            <line x1="720" y1="300" x2="720" y2="500" stroke="#666666" stroke-width="1" stroke-dasharray="4"/>
+                            <text x="730" y="400" fill="#666666" text-anchor="start" font-size="12">Water Level</text>
+                        </g>
+
+                        <!-- Title and Description -->
+                        <g transform="translate(400, 50)">
+                            <text x="0" y="0" text-anchor="middle" fill="#ffffff" font-size="18">Potential Difference Drives Flow</text>
+                            <text x="0" y="25" text-anchor="middle" fill="#4a9eff" font-size="14">(Just like water flows from high to low levels)</text>
+                        </g>
+                    </svg>
+                `,
+                script: `
+                    class WaterParticle {
+                        constructor(startX, startY) {
+                            this.element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            this.element.setAttribute('r', '3');
+                            this.element.setAttribute('fill', '#4a9eff');
+                            this.element.setAttribute('filter', 'url(#flow-blur)');
+                            this.element.setAttribute('opacity', '0.7');
+                            
+                            // Create motion path animation
+                            const motion = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
+                            motion.setAttribute('dur', '2s');
+                            motion.setAttribute('repeatCount', '1');
+                            motion.setAttribute('path', 'M 300 450 C 350 450, 375 450, 400 400 S 450 350, 500 350');
+                            motion.setAttribute('rotate', 'auto');
+                            
+                            this.element.appendChild(motion);
+                            document.getElementById('water-flow').appendChild(this.element);
+                            
+                            // Remove particle after animation
+                            motion.addEventListener('endEvent', () => {
+                                this.element.remove();
+                            });
+                        }
+                    }
+
+                    function createWaterFlow() {
+                        // Create new particles periodically
+                        setInterval(() => {
+                            new WaterParticle(300, 450);
+                        }, 200);
+                        
+                        // Add ripple effect to water surfaces
+                        function updateRipples() {
+                            const time = Date.now() / 1000;
+                            const highWater = document.getElementById('high-water');
+                            const lowWater = document.getElementById('low-water');
+                            
+                            if (highWater && lowWater) {
+                                // Add subtle wave motion to water surface
+                                const highWaveOffset = Math.sin(time * 2) * 3;
+                                const lowWaveOffset = Math.sin(time * 2 + Math.PI) * 3;
+                                
+                                highWater.setAttribute('filter', 'url(#water-ripple)');
+                                lowWater.setAttribute('filter', 'url(#water-ripple)');
+                            }
+                            
+                            requestAnimationFrame(updateRipples);
+                        }
+                        
+                        updateRipples();
+                    }
+
+                    // Initialize water flow animation
+                    createWaterFlow();
+
+                    // Add cleanup function
+                    return () => {
+                        // Clear any intervals or animations when changing steps
+                        const waterFlow = document.getElementById('water-flow');
+                        if (waterFlow) {
+                            waterFlow.innerHTML = '';
+                        }
+                    };
+                `
+            },
+            {
+                text: '#voltage-text',
+                svg: `
+                    <svg viewBox="0 0 800 600">
+                        <defs>
+                            <filter id="fieldGlow">
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feComposite operator="over" in="SourceGraphic"/>
+                            </filter>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#a459d1"/>
+                            </marker>
+                        </defs>
+                        <rect width="800" height="600" fill="#1a1a1a"/>
+                        <g transform="translate(100, 150)">
+                            <g id="field-container"></g>
+                            <g class="battery">
+                                <g class="terminal positive" transform="translate(50, 150)">
+                                    <circle r="30" fill="#ff4444" stroke="#ffffff" stroke-width="2"/>
+                                    <text y="8" text-anchor="middle" fill="#ffffff" font-size="24">+</text>
+                                </g>
+                                <g class="terminal negative" transform="translate(550, 150)">
+                                    <circle r="30" fill="#4444ff" stroke="#ffffff" stroke-width="2"/>
+                                    <text y="8" text-anchor="middle" fill="#ffffff" font-size="24">−</text>
+                                </g>
+                            </g>
+                            <g id="electron-container"></g>
+                        </g>
+                        <g transform="translate(250, 450)">
+                            <text x="150" y="-20" text-anchor="middle" fill="#ffffff" font-size="16">Adjust Voltage</text>
+                            <rect x="0" y="0" width="300" height="40" rx="20" fill="#2a2a2a" stroke="#4a9eff" stroke-width="2"/>
+                            <rect id="voltage-slider" x="0" y="0" width="150" height="40" rx="20" fill="#4a9eff" opacity="0.3"/>
+                            <circle id="voltage-handle" cx="150" cy="20" r="18" fill="#4a9eff" cursor="pointer"/>
+                            <text id="voltage-display" x="350" y="25" fill="#ffffff" font-size="16">6.0V</text>
+                        </g>
+                    </svg>
+                `,
+                script: `
+                    let voltage = 6.0;
+                    let animationFrameId = null;
+
+                    function createFieldLines() {
+                        const container = document.getElementById('field-container');
+                        container.innerHTML = '';
+                        const intensity = voltage / 12;
+                        const numLines = Math.max(5, Math.floor(3 + intensity * 7));
+                        
+                        for (let i = 0; i < numLines; i++) {
+                            const yOffset = (i - (numLines - 1) / 2) * 25;
+                            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            const amplitude = 20 + intensity * 30;
+                            const d = \`M 50 \${150 + yOffset} Q 300 \${150 + yOffset + amplitude} 550 \${150 + yOffset}\`;
+                            
+                            path.setAttribute('d', d);
+                            path.setAttribute('stroke', '#a459d1');
+                            path.setAttribute('stroke-width', 2);
+                            path.setAttribute('fill', 'none');
+                            path.setAttribute('filter', 'url(#fieldGlow)');
+                            path.setAttribute('marker-end', 'url(#arrowhead)');
+                            path.style.opacity = Math.min(1, intensity * 0.7 + 0.3);
+                            container.appendChild(path);
+                        }
+                    }
+
+                    function updateElectrons() {
+                        const container = document.getElementById('electron-container');
+                        const electronCount = Math.max(5, Math.floor(voltage * 2));
+                        
+                        while (container.children.length > electronCount) {
+                            container.removeChild(container.lastChild);
+                        }
+                        
+                        while (container.children.length < electronCount) {
+                            const electron = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                            const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            glow.setAttribute('r', '4');
+                            glow.setAttribute('fill', '#4a9eff');
+                            glow.setAttribute('opacity', '0.5');
+                            glow.setAttribute('filter', 'url(#fieldGlow)');
+                            
+                            const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            core.setAttribute('r', '2');
+                            core.setAttribute('fill', '#4a9eff');
+                            
+                            electron.appendChild(glow);
+                            electron.appendChild(core);
+                            electron.dataset.offset = Math.random();
+                            container.appendChild(electron);
+                        }
+                        
+                        const speed = voltage / 12;
+                        Array.from(container.children).forEach(electron => {
+                            let offset = parseFloat(electron.dataset.offset);
+                            offset = (offset + speed * 0.02) % 1;
+                            electron.dataset.offset = offset;
+                            const x = 50 + offset * 500;
+                            const y = 150 + Math.sin(offset * Math.PI) * (20 + (voltage / 12) * 30);
+                            electron.setAttribute('transform', \`translate(\${x},\${y})\`);
+                        });
+                    }
+
+                    function animate() {
+                        updateElectrons();
+                        animationFrameId = requestAnimationFrame(animate);
+                    }
+
+                    function updateVisualization() {
+                        document.getElementById('voltage-display').textContent = \`\${voltage.toFixed(1)}V\`;
+                        createFieldLines();
+                    }
+
+                    function setupVoltageControl() {
+                        const slider = document.getElementById('voltage-slider');
+                        const handle = document.getElementById('voltage-handle');
+                        let isDragging = false;
+
+                        handle.addEventListener('mousedown', () => {
+                            isDragging = true;
+                        });
+
+                        document.addEventListener('mousemove', (e) => {
+                            if (!isDragging) return;
+                            const rect = slider.getBoundingClientRect();
+                            const x = Math.max(0, Math.min(300, e.clientX - rect.left));
+                            handle.setAttribute('cx', x);
+                            slider.setAttribute('width', x);
+                            voltage = (x / 300) * 12;
+                            updateVisualization();
+                        });
+
+                        document.addEventListener('mouseup', () => {
+                            isDragging = false;
+                        });
+                    }
+
+                    setupVoltageControl();
+                    updateVisualization();
+                    animate();
+                `
+            },
+            {
+                text: '#resistance-text',
+                svg: `
+                    <svg viewBox="0 0 800 600">
+                        <defs>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <pattern id="conductor-lattice" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <circle cx="10" cy="10" r="3" fill="#ff4444" opacity="0.8"/>
+                            </pattern>
+                            <pattern id="semiconductor-lattice" x="0" y="0" width="25" height="25" patternUnits="userSpaceOnUse">
+                                <circle cx="12.5" cy="12.5" r="4" fill="#ff8844" opacity="0.8"/>
+                                <circle cx="6" cy="6" r="2" fill="#884444" opacity="0.6"/>
+                            </pattern>
+                            <pattern id="insulator-lattice" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse">
+                                <circle cx="7.5" cy="7.5" r="5" fill="#ff2222" opacity="0.9"/>
+                                <circle cx="3" cy="3" r="2" fill="#aa2222" opacity="0.7"/>
+                                <circle cx="12" cy="12" r="2" fill="#aa2222" opacity="0.7"/>
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="800" height="600" fill="#1a1a1a"/>
+                        <g transform="translate(100, 100)">
+                            <rect id="material-container" x="0" y="0" width="600" height="300" fill="url(#conductor-lattice)" stroke="#666666" stroke-width="2"/>
+                            <g id="electrons-container"></g>
+                            <g id="heat-particles"></g>
+                        </g>
+                        <g transform="translate(50, 450)">
+                            <g class="material-selector">
+                                <rect x="0" y="0" width="200" height="40" fill="#2a2a2a" rx="5" stroke="#4a9eff"/>
+                                <text x="10" y="25" fill="#ffffff" font-size="14">Material Type:</text>
+                                <g id="conductor-btn" transform="translate(220, 0)" class="active">
+                                    <rect width="100" height="40" fill="#4a9eff" rx="5" cursor="pointer"/>
+                                    <text x="50" y="25" text-anchor="middle" fill="#ffffff" font-size="12">Conductor</text>
+                                </g>
+                                <g id="semiconductor-btn" transform="translate(330, 0)">
+                                    <rect width="120" height="40" fill="#2a2a2a" rx="5" cursor="pointer"/>
+                                    <text x="60" y="25" text-anchor="middle" fill="#ffffff" font-size="12">Semiconductor</text>
+                                </g>
+                                <g id="insulator-btn" transform="translate(460, 0)">
+                                    <rect width="100" height="40" fill="#2a2a2a" rx="5" cursor="pointer"/>
+                                    <text x="50" y="25" text-anchor="middle" fill="#ffffff" font-size="12">Insulator</text>
+                                </g>
+                            </g>
+                        </g>
+                        <g transform="translate(50, 520)">
+                            <rect width="700" height="60" fill="#2a2a2a" rx="5"/>
+                            <text x="10" y="25" fill="#4a9eff" font-size="14" id="material-info">Conductor: Low resistance, electrons move freely through ordered lattice</text>
+                            <text x="10" y="45" fill="#ffffff" font-size="12" id="collision-info">Collisions: 0 | Average Speed: 100%</text>
+                        </g>
+                    </svg>
+                `,
+                script: `
+                    const materials = {
+                        conductor: {
+                            pattern: 'url(#conductor-lattice)',
+                            electronSpeed: 1,
+                            collisionProbability: 0.1,
+                            description: 'Conductor: Low resistance, electrons move freely through ordered lattice',
+                            color: '#4a9eff'
+                        },
+                        semiconductor: {
+                            pattern: 'url(#semiconductor-lattice)',
+                            electronSpeed: 0.6,
+                            collisionProbability: 0.3,
+                            description: 'Semiconductor: Medium resistance, some electron collisions',
+                            color: '#ff8844'
+                        },
+                        insulator: {
+                            pattern: 'url(#insulator-lattice)',
+                            electronSpeed: 0.2,
+                            collisionProbability: 0.7,
+                            description: 'Insulator: High resistance, frequent electron collisions',
+                            color: '#ff4444'
+                        }
+                    };
+
+                    let currentMaterial = 'conductor';
+                    let collisionCount = 0;
+                    let electrons = [];
+                    let animationFrameId = null;
+
+                    class Electron {
+                        constructor(x, y) {
+                            this.x = x;
+                            this.y = y;
+                            this.vx = materials[currentMaterial].electronSpeed * 2;
+                            this.vy = 0;
+                            this.radius = 3;
+                            this.colliding = false;
+                            this.element = createElectronElement();
+                        }
+
+                        update() {
+                            if (!this.colliding) {
+                                this.x += this.vx;
+                                this.y += this.vy;
+
+                                if (Math.random() < materials[currentMaterial].collisionProbability) {
+                                    this.collide();
+                                }
+
+                                if (this.x > 600) this.x = 0;
+                                if (this.x < 0) this.x = 600;
+                                if (this.y > 300) this.y = 0;
+                                if (this.y < 0) this.y = 300;
+                            } else {
+                                this.collisionTime++;
+                                if (this.collisionTime > 10) {
+                                    this.colliding = false;
+                                    this.vx = materials[currentMaterial].electronSpeed * 2;
+                                    this.vy = 0;
+                                }
+                            }
+
+                            this.element.setAttribute('transform', \`translate(\${this.x},\${this.y})\`);
+                        }
+
+                        collide() {
+                            this.colliding = true;
+                            this.collisionTime = 0;
+                            this.vx *= -0.5;
+                            this.vy = (Math.random() - 0.5) * 2;
+                            collisionCount++;
+                            createHeatParticle(this.x, this.y);
+                        }
+                    }
+
+                    function createElectronElement() {
+                        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        glow.setAttribute('r', '5');
+                        glow.setAttribute('fill', '#4a9eff');
+                        glow.setAttribute('opacity', '0.3');
+                        glow.setAttribute('filter', 'url(#glow)');
+
+                        const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        core.setAttribute('r', '2');
+                        core.setAttribute('fill', '#4a9eff');
+
+                        group.appendChild(glow);
+                        group.appendChild(core);
+                        document.getElementById('electrons-container').appendChild(group);
+                        return group;
+                    }
+
+                    function createHeatParticle(x, y) {
+                        const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        particle.setAttribute('cx', x);
+                        particle.setAttribute('cy', y);
+                        particle.setAttribute('r', '2');
+                        particle.setAttribute('fill', '#ff4444');
+                        particle.setAttribute('opacity', '0.8');
+
+                        document.getElementById('heat-particles').appendChild(particle);
+
+                        let opacity = 0.8;
+                        let size = 2;
+                        let vy = -1;
+
+                        function animateParticle() {
+                            opacity -= 0.02;
+                            size += 0.1;
+                            vy += 0.05;
+                            
+                            particle.setAttribute('opacity', opacity);
+                            particle.setAttribute('r', size);
+                            particle.setAttribute('cy', parseFloat(particle.getAttribute('cy')) + vy);
+
+                            if (opacity > 0) {
+                                requestAnimationFrame(animateParticle);
+                            } else {
+                                particle.remove();
+                            }
+                        }
+
+                        animateParticle();
+                    }
+
+                    function initializeElectrons() {
+                        electrons = [];
+                        document.getElementById('electrons-container').innerHTML = '';
+                        document.getElementById('heat-particles').innerHTML = '';
+
+                        for (let i = 0; i < 20; i++) {
+                            electrons.push(new Electron(
+                                Math.random() * 600,
+                                Math.random() * 300
+                            ));
+                        }
+                    }
+
+                    function animate() {
+                        electrons.forEach(electron => electron.update());
+                        document.getElementById('collision-info').textContent = 
+                            \`Collisions: \${collisionCount} | Average Speed: \${
+                                Math.round(materials[currentMaterial].electronSpeed * 100)
+                            }%\`;
+                        animationFrameId = requestAnimationFrame(animate);
+                    }
+
+                    function changeMaterial(material) {
+                        currentMaterial = material;
+                        document.getElementById('material-container')
+                            .setAttribute('fill', materials[material].pattern);
+                        document.getElementById('material-info').textContent = 
+                            materials[material].description;
+                        collisionCount = 0;
+                        
+                        ['conductor', 'semiconductor', 'insulator'].forEach(mat => {
+                            const btn = document.getElementById(\`\${mat}-btn\`);
+                            btn.firstElementChild.setAttribute('fill', 
+                                mat === material ? materials[mat].color : '#2a2a2a');
+                        });
+
+                        initializeElectrons();
+                    }
+
+                    function initializeVisualization() {
+                        ['conductor', 'semiconductor', 'insulator'].forEach(material => {
+                            document.getElementById(\`\${material}-btn\`).addEventListener('click', () => {
+                                changeMaterial(material);
+                            });
+                        });
+
+                        initializeElectrons();
+                        animate();
+                    }
+
+                    initializeVisualization();
+                `
+            },
+            {
+                text: '#ohms-law-text',
+                svg: `
+                    <svg viewBox="0 0 800 600">
+                        <defs>
+                            <linearGradient id="metallic" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#666666"/>
+                                <stop offset="50%" style="stop-color:#999999"/>
+                                <stop offset="100%" style="stop-color:#666666"/>
+                            </linearGradient>
+                            <filter id="wire-glow">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+                                <feComposite operator="over" in="SourceGraphic"/>
+                            </filter>
+                            <filter id="electron-glow">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="1"/>
+                                <feComposite operator="over" in="SourceGraphic"/>
+                            </filter>
+                            <pattern id="resistor-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect width="10" height="10" fill="#2a2a2a"/>
+                                <path d="M0 5 L10 5 M5 0 L5 10" stroke="#444" stroke-width="1"/>
+                            </pattern>
+                        </defs>
+                        <rect width="800" height="600" fill="#1a1a1a"/>
+                        
+                        <!-- Title and Equation -->
+                        <g transform="translate(400, 50)">
+                            <rect x="-150" y="-30" width="300" height="60" fill="#1a1a1a" rx="5" stroke="#4a9eff" stroke-width="1"/>
+                            <text x="0" y="0" text-anchor="middle" fill="#fff" font-size="24" font-family="monospace">V = I × R</text>
+                            <text x="0" y="20" text-anchor="middle" fill="#666" font-size="12">Ohm's Law</text>
+                        </g>
+
+                        <!-- Interactive Circuit -->
+                        <g id="circuit" transform="translate(200, 200)">
+                            <!-- Circuit Background -->
+                            <rect x="-50" y="-100" width="400" height="250" fill="#2a2a2a" rx="10" opacity="0.3"/>
+                            
+                            <!-- Circuit Path -->
+                            <path id="electron-path" d="M-30 0 L-30 -80 L100 -80 L100 0 L230 0 L230 80 L-30 80 Z" 
+                                stroke="#4a9eff" stroke-width="2" fill="none" filter="url(#wire-glow)"/>
+                            
+                            <!-- Battery -->
+                            <g class="battery" transform="translate(-30, 0)">
+                                <rect x="-20" y="-30" width="40" height="60" fill="url(#metallic)" 
+                                    stroke="#4a9eff" stroke-width="2" rx="5"/>
+                                <line x1="-10" y1="-15" x2="-10" y2="15" stroke="#4a9eff" stroke-width="4"/>
+                                <line x1="5" y1="-10" x2="5" y2="10" stroke="#4a9eff" stroke-width="2"/>
+                                <text x="0" y="-40" text-anchor="middle" fill="#4a9eff" font-size="12">Battery</text>
+                                <text id="voltage-display" x="-40" y="0" text-anchor="end" fill="#4a9eff" font-size="14" font-weight="bold">6.0V</text>
+                            </g>
+
+                            <!-- Resistor -->
+                            <g class="resistor" transform="translate(100, -80)">
+                                <rect x="-30" y="-20" width="60" height="40" fill="url(#resistor-pattern)" 
+                                    stroke="#ff4444" stroke-width="2" rx="5"/>
+                                <text x="0" y="-30" text-anchor="middle" fill="#ff4444" font-size="12">Resistor</text>
+                                <text id="resistance-display" x="40" y="0" text-anchor="start" fill="#ff4444" font-size="14" font-weight="bold">1000Ω</text>
+                            </g>
+
+                            <!-- Ammeter -->
+                            <g class="ammeter" transform="translate(100, 0)">
+                                <circle r="20" fill="#1a1a1a" stroke="#4a9eff" stroke-width="2"/>
+                                <text x="0" y="-30" text-anchor="middle" fill="#4a9eff" font-size="12">Current</text>
+                                <text id="current-display" x="0" y="5" text-anchor="middle" fill="#4a9eff" font-size="14" font-weight="bold">50mA</text>
+                            </g>
+
+                            <!-- Electrons Container -->
+                            <g id="electrons"></g>
+                        </g>
+
+                        <!-- Controls Panel -->
+                        <g class="control-panel" transform="translate(600, 150)">
+                            <rect x="-20" y="-20" width="240" height="200" fill="#2a2a2a" rx="10" stroke="#333" stroke-width="1"/>
+                            <text x="100" y="0" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">Circuit Controls</text>
+                            
+                            <!-- Voltage Control -->
+                            <g class="voltage-control" transform="translate(0, 40)">
+                                <text x="0" y="0" fill="#4a9eff" font-size="12">Voltage (0-12V)</text>
+                                <rect x="0" y="10" width="200" height="20" fill="#2a2a2a" rx="10"/>
+                                <rect id="voltage-slider" x="0" y="10" width="100" height="20" fill="#4a9eff" rx="10" opacity="0.5"/>
+                                <circle id="voltage-handle" cx="100" cy="20" r="10" fill="#4a9eff" cursor="pointer"/>
+                            </g>
+
+                            <!-- Resistance Control -->
+                            <g class="resistance-control" transform="translate(0, 100)">
+                                <text x="0" y="0" fill="#ff4444" font-size="12">Resistance (100-2000Ω)</text>
+                                <rect x="0" y="10" width="200" height="20" fill="#2a2a2a" rx="10"/>
+                                <rect id="resistance-slider" x="0" y="10" width="100" height="20" fill="#ff4444" rx="10" opacity="0.5"/>
+                                <circle id="resistance-handle" cx="100" cy="20" r="10" fill="#ff4444" cursor="pointer"/>
+                            </g>
+
+                            <!-- Measurement Display -->
+                            <g class="measurements" transform="translate(0, 160)">
+                                <rect x="0" y="0" width="200" height="40" fill="#1a1a1a" rx="5"/>
+                                <text x="100" y="25" text-anchor="middle" fill="#fff" font-size="12">
+                                    Adjust sliders to see changes
+                                </text>
+                            </g>
+                        </g>
+                    </svg>
+                `,
+                script: `
+                    let voltage = 6.0;
+                    let current = 50;
+                    let resistance = 1000;
+                    let animationFrameId = null;
+
+                    function createElectrons() {
+                        const electronGroup = document.getElementById('electrons');
+                        if (!electronGroup) return; // Safety check
+                        
+                        electronGroup.innerHTML = '';
+                        const numElectrons = Math.min(20, Math.max(5, Math.floor(current / 10)));
+                        
+                        for (let i = 0; i < numElectrons; i++) {
+                            const electron = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                            electron.setAttribute('class', 'electron');
+                            
+                            const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            glow.setAttribute('r', '4');
+                            glow.setAttribute('fill', '#4a9eff');
+                            glow.setAttribute('opacity', '0.3');
+                            glow.setAttribute('filter', 'url(#electron-glow)');
+                            
+                            const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            core.setAttribute('r', '2');
+                            core.setAttribute('fill', '#4a9eff');
+                            
+                            electron.appendChild(glow);
+                            electron.appendChild(core);
+                            
+                            const offset = (i / numElectrons) * 100;
+                            electron.style.offsetPath = "path('M-30 0 L-30 -80 L100 -80 L100 0 L230 0 L230 80 L-30 80 Z')";
+                            electron.style.offsetDistance = offset + '%';
+                            
+                            const duration = 3000 / (current / 50);
+                            electron.style.animation = \`moveAlongPath \${duration}ms linear infinite\`;
+                            electron.style.animationDelay = \`-\${offset / 100 * duration}ms\`;
+                            
+                            electronGroup.appendChild(electron);
+                        }
+                    }
+
+                    function setupSlider(sliderId, handleId, min, max, updateValue) {
+                        const slider = document.getElementById(sliderId);
+                        const handle = document.getElementById(handleId);
+                        if (!slider || !handle) return; // Safety check
+                        
+                        let isDragging = false;
+                        let sliderRect;
+
+                        handle.addEventListener('mousedown', (e) => {
+                            isDragging = true;
+                            sliderRect = slider.getBoundingClientRect();
+                            // Prevent text selection while dragging
+                            e.preventDefault();
+                        });
+
+                        document.addEventListener('mousemove', (e) => {
+                            if (!isDragging) return;
+                            
+                            // Only update sliderRect when starting to drag
+                            if (!sliderRect) {
+                                sliderRect = slider.getBoundingClientRect();
+                            }
+
+                            const x = Math.max(0, Math.min(200, e.clientX - sliderRect.left));
+                            handle.setAttribute('cx', x);
+                            slider.setAttribute('width', x);
+                            const value = min + (x / 200) * (max - min);
+                            updateValue(value);
+                            updateCircuit();
+                        });
+
+                        document.addEventListener('mouseup', () => {
+                            isDragging = false;
+                            sliderRect = null;
+                        });
+
+                        // Handle mouse leaving the window
+                        document.addEventListener('mouseleave', () => {
+                            isDragging = false;
+                            sliderRect = null;
+                        });
+                    }
+
+                    function formatValue(value, type) {
+                        switch(type) {
+                            case 'current':
+                                // Format current to max 2 decimal places and handle large values
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'A';
+                                }
+                                return value.toFixed(1) + 'mA';
+                            case 'voltage':
+                                return value.toFixed(1) + 'V';
+                            case 'resistance':
+                                // Format resistance to whole numbers
+                                return Math.round(value) + 'Ω';
+                            default:
+                                return value.toString();
+                        }
+                    }
+
+                    function updateCircuit() {
+                        current = (voltage / resistance) * 1000; // Convert to mA
+                        
+                        // Update displays with formatted values
+                        const voltageDisplay = document.getElementById('voltage-display');
+                        const currentDisplay = document.getElementById('current-display');
+                        const resistanceDisplay = document.getElementById('resistance-display');
+                        
+                        if (voltageDisplay) voltageDisplay.textContent = formatValue(voltage, 'voltage');
+                        if (currentDisplay) currentDisplay.textContent = formatValue(current, 'current');
+                        if (resistanceDisplay) resistanceDisplay.textContent = formatValue(resistance, 'resistance');
+                        
+                        // Update wire glow based on current
+                        const path = document.getElementById('electron-path');
+                        if (path) {
+                            const glowIntensity = Math.min(1, current / 100);
+                            path.style.opacity = 0.5 + glowIntensity * 0.5;
+                        }
+                        
+                        // Update measurement display
+                        const measurementText = document.querySelector('.measurements text');
+                        if (measurementText) {
+                            measurementText.textContent = 'V=' + formatValue(voltage, 'voltage') + ' I=' + formatValue(current, 'current');
+                        }
+                        
+                        createElectrons();
+                    }
+
+                    // Update the ammeter SVG to better contain the current value
+                    const ammeterGroup = document.querySelector('.ammeter');
+                    if (ammeterGroup) {
+                        const currentText = ammeterGroup.querySelector('#current-display');
+                        if (currentText) {
+                            // Make text slightly smaller if needed
+                            currentText.setAttribute('font-size', '12');
+                            // Add a background circle for better text containment
+                            const textBackground = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                            textBackground.setAttribute('r', '15');
+                            textBackground.setAttribute('fill', '#1a1a1a');
+                            textBackground.setAttribute('cx', '0');
+                            textBackground.setAttribute('cy', '0');
+                            ammeterGroup.insertBefore(textBackground, currentText);
+                        }
+                    }
+
+                    // Initialize the circuit
+                    setupSlider('voltage-slider', 'voltage-handle', 0, 12, (v) => { voltage = v; });
+                    setupSlider('resistance-slider', 'resistance-handle', 100, 2000, (r) => { resistance = r; });
+                    updateCircuit();
+                `
+            }
+        ];
+
+        // Remove the medium-text div since it's no longer needed
+        const mediumTextDiv = document.querySelector('#medium-text');
+        if (mediumTextDiv) {
+            mediumTextDiv.remove();
+        }
+
+        // Update step dots to match the correct number of steps
+        const stepIndicator = document.querySelector('.step-indicator');
+        if (stepIndicator) {
+            stepIndicator.innerHTML = steps.map((_, i) => 
+                `<div class="step-dot" data-step="${i}"></div>`
+            ).join('');
+        }
+
+        function updateStep() {
+            console.log('Updating to step:', currentStep);
+            
+            // Remove active class from all overlays and dots
+            document.querySelectorAll('.text-overlay, .step-dot').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Get current step
+            const step = steps[currentStep];
+            console.log('Current step:', step);
+
+            // First fade out current visualization
+            const container = document.getElementById('visualization-container');
+            container.style.opacity = '0';
+
+            // After fade out, update content
+            setTimeout(() => {
+                // Update text overlay first
+                const textElement = document.querySelector(step.text);
+                if (textElement) {
+                    textElement.classList.add('active');
+                }
+                
+                // Update step indicator
+                const stepDot = document.querySelector(`.step-dot[data-step="${currentStep}"]`);
+                if (stepDot) {
+                    stepDot.classList.add('active');
+                }
+
+                // Update visualization
+                container.innerHTML = step.svg;
+                
+                // Fade in the new visualization
+                setTimeout(() => {
+                    container.style.opacity = '1';
+                    
+                    // Run the step script
+                    if (step.script) {
+                        try {
+                            eval(step.script);
+                            console.log('Step script executed successfully');
+                        } catch (error) {
+                            console.error('Error executing step script:', error);
+                        }
+                    }
+                }, 100);
+            }, 300);
+        }
+
+        // Navigation setup with transition lock
+        let isTransitioning = false;
+
+        document.getElementById('next').addEventListener('click', () => {
+            if (isTransitioning) return; // Prevent rapid clicking
+            if (currentStep < steps.length - 1) {
+                isTransitioning = true;
+                currentStep++;
+                updateStep();
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 500); // Match the total transition duration
+            }
+        });
+
+        document.getElementById('prev').addEventListener('click', () => {
+            if (isTransitioning) return; // Prevent rapid clicking
+            if (currentStep > 0) {
+                isTransitioning = true;
+                currentStep--;
+                updateStep();
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 500); // Match the total transition duration
+            }
+        });
+
+        // Add keyboard navigation with transition lock
+        document.addEventListener('keydown', (e) => {
+            if (isTransitioning) return; // Prevent rapid transitions
+            
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                if (currentStep < steps.length - 1) {
+                    isTransitioning = true;
+                    currentStep++;
+                    updateStep();
+                    setTimeout(() => {
+                        isTransitioning = false;
+                    }, 500);
+                }
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                if (currentStep > 0) {
+                    isTransitioning = true;
+                    currentStep--;
+                    updateStep();
+                    setTimeout(() => {
+                        isTransitioning = false;
+                    }, 500);
+                }
+            }
+        });
+
+        // Add transition styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .text-overlay {
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            #visualization-container {
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            .step-dot {
+                transition: all 0.3s ease-in-out;
+            }
+
+            /* Prevent interaction during transitions */
+            .transitioning {
+                pointer-events: none;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize first step
+        updateStep();
+    </script>
+</body>
+</html> 

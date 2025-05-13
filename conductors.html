@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parallel and Series Resistance</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --background-color: #f5f6fa;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+      --gradient-start: #3498db;
+      --gradient-end: #2980b9;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(52, 152, 219, 0.1), transparent),
+                  radial-gradient(circle at bottom right, rgba(231, 76, 60, 0.1), transparent);
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+                  linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%);
+      background-size: 60px 60px;
+      opacity: 0.1;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2rem;
+    }
+    
+    .visualization-container {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .visualization-container:hover {
+      transform: translateY(-5px);
+    }
+    
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .control-group {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .control-group h3 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .slider-container {
+      margin-bottom: 1rem;
+    }
+    
+    .slider-container label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+    
+    .slider {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+      border-radius: 4px;
+      outline: none;
+      transition: opacity 0.2s;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border: 2px solid var(--secondary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+    }
+    
+    .value-display {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--secondary-color);
+      text-align: center;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(52, 152, 219, 0.1);
+      border-radius: 5px;
+    }
+    
+    .circuit-type {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .circuit-type button {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: var(--text-color);
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-width: 180px;
+      font-size: 1rem;
+    }
+    
+    .circuit-type button.active {
+      background: var(--secondary-color);
+      color: white;
+      box-shadow: 0 4px 6px rgba(52, 152, 219, 0.3);
+    }
+    
+    .circuit-type button:hover:not(.active) {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+    
+    .animation-controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .animation-controls button {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--secondary-color);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-width: 180px;
+      font-size: 1rem;
+    }
+    
+    .animation-controls button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(52, 152, 219, 0.3);
+    }
+    
+    .animation-controls button:active {
+      transform: translateY(0);
+    }
+    
+    .info-panel {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      height: fit-content;
+      position: sticky;
+      top: 2rem;
+    }
+    
+    .info-panel h2 {
+      color: var(--primary-color);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--secondary-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .info-panel p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    
+    .formula {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-family: 'Courier New', monospace;
+      color: var(--primary-color);
+      border-left: 4px solid var(--secondary-color);
+    }
+    
+    .key-points {
+      list-style: none;
+      margin: 1.5rem 0;
+    }
+    
+    .key-points li {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .key-points li::before {
+      content: '•';
+      color: var(--secondary-color);
+      font-size: 1.5rem;
+      position: absolute;
+      left: 0;
+      top: -0.2rem;
+    }
+    
+    .meter-display {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .meter-display h3 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .meter-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--secondary-color);
+      text-align: center;
+      padding: 0.5rem;
+      background: rgba(52, 152, 219, 0.1);
+      border-radius: 5px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .meter-label {
+      text-align: center;
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+    
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      pointer-events: none;
+      z-index: 1000;
+      transition: opacity 0.3s ease;
+    }
+    
+    @media (max-width: 1200px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      
+      .info-panel {
+        position: static;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      
+      .circuit-type {
+        flex-direction: column;
+      }
+      
+      .animation-controls {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-bolt"></i> Parallel and Series Resistance</h1>
+    <p>Interactive visualization of circuit configurations</p>
+  </div>
+
+  <div class="container">
+    <div class="visualization-container">
+      <div class="canvas-container">
+        <canvas id="circuitCanvas"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <h3><i class="fas fa-battery-full"></i> Battery Voltage</h3>
+          <div class="slider-container">
+            <label>Voltage (V)</label>
+            <input type="range" class="slider" id="voltageSlider" min="1" max="12" value="6" step="0.1">
+            <div class="value-display" id="voltageValue">6.0 V</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3><i class="fas fa-resistor"></i> Resistor 1</h3>
+          <div class="slider-container">
+            <label>Resistance (Ω)</label>
+            <input type="range" class="slider" id="resistor1Slider" min="100" max="10000" value="1000" step="100">
+            <div class="value-display" id="resistor1Value">1000 Ω</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3><i class="fas fa-resistor"></i> Resistor 2</h3>
+          <div class="slider-container">
+            <label>Resistance (Ω)</label>
+            <input type="range" class="slider" id="resistor2Slider" min="100" max="10000" value="2000" step="100">
+            <div class="value-display" id="resistor2Value">2000 Ω</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3><i class="fas fa-resistor"></i> Resistor 3</h3>
+          <div class="slider-container">
+            <label>Resistance (Ω)</label>
+            <input type="range" class="slider" id="resistor3Slider" min="100" max="10000" value="3000" step="100">
+            <div class="value-display" id="resistor3Value">3000 Ω</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="circuit-type">
+        <button id="seriesBtn" class="active">
+          <i class="fas fa-link"></i> Series Circuit
+        </button>
+        <button id="parallelBtn">
+          <i class="fas fa-project-diagram"></i> Parallel Circuit
+        </button>
+      </div>
+
+      <div class="animation-controls">
+        <button id="startBtn">
+          <i class="fas fa-play"></i> Start Animation
+        </button>
+        <button id="resetBtn">
+          <i class="fas fa-redo"></i> Reset
+        </button>
+      </div>
+
+      <div class="meter-display">
+        <h3><i class="fas fa-tachometer-alt"></i> Circuit Measurements</h3>
+        <div class="meter-value" id="totalResistance">0 Ω</div>
+        <div class="meter-label">Total Resistance</div>
+        <div class="meter-value" id="totalCurrent">0 A</div>
+        <div class="meter-label">Total Current</div>
+        <div class="meter-value" id="totalPower">0 W</div>
+        <div class="meter-label">Total Power</div>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <h2><i class="fas fa-info-circle"></i> About Circuit Configurations</h2>
+      <p>Explore how resistors behave in series and parallel configurations. Adjust the values to see how they affect the total resistance, current flow, and power dissipation.</p>
+
+      <div class="formula">
+        Series: R<sub>total</sub> = R<sub>1</sub> + R<sub>2</sub> + R<sub>3</sub>
+      </div>
+
+      <div class="formula">
+        Parallel: 1/R<sub>total</sub> = 1/R<sub>1</sub> + 1/R<sub>2</sub> + 1/R<sub>3</sub>
+      </div>
+
+      <h3>Series Circuit Properties:</h3>
+      <ul class="key-points">
+        <li>Current is the same through all components</li>
+        <li>Voltage is divided across components</li>
+        <li>Total resistance is the sum of individual resistances</li>
+        <li>If one component fails, the entire circuit fails</li>
+      </ul>
+
+      <h3>Parallel Circuit Properties:</h3>
+      <ul class="key-points">
+        <li>Voltage is the same across all components</li>
+        <li>Current is divided among components</li>
+        <li>Total resistance is less than the smallest individual resistance</li>
+        <li>Components can operate independently</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+    let isAnimating = false;
+    let animationFrame;
+    let currentTime = 0;
+    let isSeries = true;
+    let animationSpeed = 0.5; // Control animation speed
+
+    // Circuit elements
+    const circuit = {
+        voltage: 6,
+        resistors: [
+            { value: 1000, color: '#e74c3c' },
+            { value: 2000, color: '#2ecc71' },
+            { value: 3000, color: '#3498db' }
+        ],
+        totalResistance: 0,
+        totalCurrent: 0,
+        totalPower: 0
+    };
+
+    // Resize canvas to fit container
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        drawCircuit();
+    }
+
+    // Initialize event listeners
+    function initializeControls() {
+        // Voltage slider
+        const voltageSlider = document.getElementById('voltageSlider');
+        const voltageValue = document.getElementById('voltageValue');
+        voltageSlider.addEventListener('input', (e) => {
+            circuit.voltage = parseFloat(e.target.value);
+            voltageValue.textContent = `${circuit.voltage.toFixed(1)} V`;
+            updateCircuit();
+        });
+
+        // Resistor sliders
+        const resistorSliders = [
+            document.getElementById('resistor1Slider'),
+            document.getElementById('resistor2Slider'),
+            document.getElementById('resistor3Slider')
+        ];
+
+        resistorSliders.forEach((slider, index) => {
+            const valueDisplay = document.getElementById(`resistor${index + 1}Value`);
+            slider.addEventListener('input', (e) => {
+                circuit.resistors[index].value = parseInt(e.target.value);
+                valueDisplay.textContent = `${circuit.resistors[index].value} Ω`;
+                updateCircuit();
+            });
+        });
+
+        // Circuit type buttons
+        document.getElementById('seriesBtn').addEventListener('click', () => {
+            isSeries = true;
+            document.getElementById('seriesBtn').classList.add('active');
+            document.getElementById('parallelBtn').classList.remove('active');
+            updateCircuit();
+        });
+
+        document.getElementById('parallelBtn').addEventListener('click', () => {
+            isSeries = false;
+            document.getElementById('parallelBtn').classList.add('active');
+            document.getElementById('seriesBtn').classList.remove('active');
+            updateCircuit();
+        });
+
+        // Animation controls
+        document.getElementById('startBtn').addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            document.getElementById('startBtn').innerHTML = isAnimating ? 
+                '<i class="fas fa-pause"></i> Pause Animation' : 
+                '<i class="fas fa-play"></i> Start Animation';
+            if (isAnimating) {
+                animate();
+            } else {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            resetCircuit();
+        });
+
+        // Window resize
+        window.addEventListener('resize', resizeCanvas);
+    }
+
+    // Calculate circuit values
+    function calculateCircuitValues() {
+        if (isSeries) {
+            circuit.totalResistance = circuit.resistors.reduce((sum, r) => sum + r.value, 0);
+        } else {
+            circuit.totalResistance = 1 / circuit.resistors.reduce((sum, r) => sum + 1/r.value, 0);
+        }
+        circuit.totalCurrent = circuit.voltage / circuit.totalResistance;
+        circuit.totalPower = circuit.voltage * circuit.totalCurrent;
+
+        // Update displays
+        document.getElementById('totalResistance').textContent = `${circuit.totalResistance.toFixed(1)} Ω`;
+        document.getElementById('totalCurrent').textContent = `${(circuit.totalCurrent * 1000).toFixed(2)} mA`;
+        document.getElementById('totalPower').textContent = `${circuit.totalPower.toFixed(2)} W`;
+    }
+
+    // Draw the circuit
+    function drawCircuit() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const circuitWidth = canvas.width * 0.8;
+        const circuitHeight = canvas.height * 0.4;
+        
+        // Draw circuit background
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(centerX - circuitWidth/2 - 20, centerY - circuitHeight/2 - 20, 
+                    circuitWidth + 40, circuitHeight + 40);
+        ctx.strokeStyle = '#e9ecef';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - circuitWidth/2 - 20, centerY - circuitHeight/2 - 20, 
+                      circuitWidth + 40, circuitHeight + 40);
+        
+        // Draw battery
+        const batteryWidth = 60;
+        const batteryHeight = 40;
+        
+        // Battery body
+        ctx.fillStyle = '#f1c40f';
+        ctx.fillRect(centerX - circuitWidth/2, centerY - batteryHeight/2, batteryWidth, batteryHeight);
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - circuitWidth/2, centerY - batteryHeight/2, batteryWidth, batteryHeight);
+        
+        // Battery terminals
+        ctx.beginPath();
+        ctx.moveTo(centerX - circuitWidth/2 + batteryWidth, centerY);
+        ctx.lineTo(centerX - circuitWidth/2 + batteryWidth + 20, centerY);
+        ctx.stroke();
+        
+        // Battery voltage label
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${circuit.voltage.toFixed(1)}V`, centerX - circuitWidth/2 + batteryWidth/2, centerY + batteryHeight/2 + 20);
+        
+        if (isSeries) {
+            // SERIES CIRCUIT
+            // Draw resistors
+            const resistorSpacing = circuitWidth / 4;
+            const resistorHeight = 40;
+            
+            circuit.resistors.forEach((resistor, index) => {
+                const x = centerX - circuitWidth/2 + batteryWidth + 40 + index * resistorSpacing;
+                const y = centerY;
+                
+                // Draw resistor body
+                ctx.fillStyle = resistor.color;
+                ctx.fillRect(x, y - resistorHeight/2, 40, resistorHeight);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.strokeRect(x, y - resistorHeight/2, 40, resistorHeight);
+                
+                // Draw resistor bands (like a real resistor)
+                const bandWidth = 5;
+                const bandSpacing = 8;
+                const bandStartX = x + 5;
+                
+                // Draw 3 color bands
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillStyle = getResistorBandColor(resistor.value, i);
+                    ctx.fillRect(bandStartX + i * (bandWidth + bandSpacing), y - resistorHeight/2 + 5, bandWidth, resistorHeight - 10);
+                }
+                
+                // Draw resistor value
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${resistor.value}Ω`, x + 20, y + resistorHeight/2 + 20);
+                
+                // Draw current flow animation
+                if (isAnimating) {
+                    const current = circuit.totalCurrent;
+                    const intensity = Math.min(1, current / 0.1);
+                    ctx.strokeStyle = `rgba(52, 152, 219, ${intensity})`;
+                    ctx.lineWidth = 3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x + 40, y);
+                    ctx.lineTo(x + resistorSpacing - 40, y);
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw connecting wires for series circuit
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            
+            // Horizontal wire
+            ctx.beginPath();
+            ctx.moveTo(centerX - circuitWidth/2 + batteryWidth + 20, centerY);
+            ctx.lineTo(centerX + circuitWidth/2 - 40, centerY);
+            ctx.stroke();
+            
+            // Return wire
+            ctx.beginPath();
+            ctx.moveTo(centerX + circuitWidth/2 - 40, centerY);
+            ctx.lineTo(centerX + circuitWidth/2 - 40, centerY + circuitHeight/2 - 20);
+            ctx.lineTo(centerX - circuitWidth/2, centerY + circuitHeight/2 - 20);
+            ctx.lineTo(centerX - circuitWidth/2, centerY);
+            ctx.stroke();
+            
+            // Draw circuit nodes (connection points)
+            ctx.fillStyle = '#2c3e50';
+            
+            // Draw nodes at resistor connections
+            circuit.resistors.forEach((_, index) => {
+                const x = centerX - circuitWidth/2 + batteryWidth + 40 + index * resistorSpacing;
+                const y = centerY;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (index < circuit.resistors.length - 1) {
+                    ctx.beginPath();
+                    ctx.arc(x + 40, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        } else {
+            // PARALLEL CIRCUIT - COMPLETELY REDESIGNED WITH LADDER STRUCTURE
+            // Draw connecting wires for parallel circuit
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            
+            // Main horizontal wire from battery
+            ctx.beginPath();
+            ctx.moveTo(centerX - circuitWidth/2 + batteryWidth + 20, centerY);
+            ctx.lineTo(centerX - circuitWidth/2 + batteryWidth + 60, centerY);
+            ctx.stroke();
+            
+            // Draw the ladder structure for parallel circuit
+            const ladderStartX = centerX - circuitWidth/2 + batteryWidth + 60;
+            const ladderEndX = centerX + circuitWidth/2 - 60;
+            const ladderY = centerY;
+            
+            // Draw the two vertical rails of the ladder
+            ctx.beginPath();
+            ctx.moveTo(ladderStartX, ladderY - circuitHeight/2 + 40);
+            ctx.lineTo(ladderStartX, ladderY + circuitHeight/2 - 40);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(ladderEndX, ladderY - circuitHeight/2 + 40);
+            ctx.lineTo(ladderEndX, ladderY + circuitHeight/2 - 40);
+            ctx.stroke();
+            
+            // Draw resistors
+            const resistorHeight = 40;
+            const resistorWidth = 40;
+            const resistorSpacing = (circuitHeight - 80) / (circuit.resistors.length + 1);
+            
+            // Calculate positions for resistors to be evenly spaced
+            const startY = ladderY - circuitHeight/2 + 40 + resistorSpacing;
+            
+            // Draw resistors and their connections
+            circuit.resistors.forEach((resistor, index) => {
+                // Calculate position for each resistor
+                const y = startY + index * resistorSpacing;
+                const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - resistorWidth / 2;
+                
+                // Draw resistor body
+                ctx.fillStyle = resistor.color;
+                ctx.fillRect(x, y - resistorHeight/2, resistorWidth, resistorHeight);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.strokeRect(x, y - resistorHeight/2, resistorWidth, resistorHeight);
+                
+                // Draw resistor bands (like a real resistor)
+                const bandWidth = 5;
+                const bandSpacing = 8;
+                const bandStartX = x + 5;
+                
+                // Draw 3 color bands
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillStyle = getResistorBandColor(resistor.value, i);
+                    ctx.fillRect(bandStartX + i * (bandWidth + bandSpacing), y - resistorHeight/2 + 5, bandWidth, resistorHeight - 10);
+                }
+                
+                // Draw resistor value
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${resistor.value}Ω`, x + resistorWidth/2, y + resistorHeight/2 + 20);
+                
+                // Draw connecting wires to the ladder rails
+                ctx.beginPath();
+                ctx.moveTo(ladderStartX, y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x + resistorWidth, y);
+                ctx.lineTo(ladderEndX, y);
+                ctx.stroke();
+                
+                // Draw current flow animation
+                if (isAnimating) {
+                    const current = circuit.voltage / resistor.value;
+                    const intensity = Math.min(1, current / 0.1);
+                    ctx.strokeStyle = `rgba(52, 152, 219, ${intensity})`;
+                    ctx.lineWidth = 3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + resistorWidth, y);
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw return wire
+            ctx.beginPath();
+            ctx.moveTo(ladderEndX, ladderY);
+            ctx.lineTo(centerX + circuitWidth/2 - 40, centerY);
+            ctx.lineTo(centerX + circuitWidth/2 - 40, centerY + circuitHeight/2 - 20);
+            ctx.lineTo(centerX - circuitWidth/2, centerY + circuitHeight/2 - 20);
+            ctx.lineTo(centerX - circuitWidth/2, centerY);
+            ctx.stroke();
+            
+            // Draw circuit nodes (connection points)
+            ctx.fillStyle = '#2c3e50';
+            
+            // Draw nodes at ladder rails
+            ctx.beginPath();
+            ctx.arc(ladderStartX, ladderY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(ladderEndX, ladderY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw nodes at resistor connections
+            circuit.resistors.forEach((_, index) => {
+                const y = startY + index * resistorSpacing;
+                const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - resistorWidth / 2;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(x + resistorWidth, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Add current division indicators
+            if (isAnimating) {
+                const totalResistance = 1 / circuit.resistors.reduce((sum, r) => sum + 1/r.value, 0);
+                const totalCurrent = circuit.voltage / totalResistance;
+                
+                circuit.resistors.forEach((resistor, index) => {
+                    const y = startY + index * resistorSpacing;
+                    const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - resistorWidth / 2;
+                    const current = circuit.voltage / resistor.value;
+                    const currentRatio = current / totalCurrent;
+                    
+                    // Draw current indicator with background for better visibility
+                    // Position above the resistor with more space
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(x + resistorWidth/2 - 30, y - 50, 60, 20);
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x + resistorWidth/2 - 30, y - 50, 60, 20);
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`I${index+1}: ${(current * 1000).toFixed(1)}mA`, x + resistorWidth/2, y - 35);
+                });
+            }
+            
+            // Add voltage indicators with background for better visibility
+            if (isAnimating) {
+                circuit.resistors.forEach((resistor, index) => {
+                    const y = startY + index * resistorSpacing;
+                    const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - resistorWidth / 2;
+                    
+                    // Draw voltage indicator with background - position to the left of resistor
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(x - 70, y - resistorHeight/2 - 10, 60, 20);
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x - 70, y - resistorHeight/2 - 10, 60, 20);
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${circuit.voltage.toFixed(1)}V`, x - 40, y - resistorHeight/2 + 5);
+                });
+            }
+            
+            // Add resistor value labels with background for better visibility
+            circuit.resistors.forEach((resistor, index) => {
+                const y = startY + index * resistorSpacing;
+                const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - resistorWidth / 2;
+                
+                // Draw resistor value with background - position to the right of resistor
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fillRect(x + resistorWidth + 10, y - resistorHeight/2 - 10, 60, 20);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + resistorWidth + 10, y - resistorHeight/2 - 10, 60, 20);
+                
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${resistor.value}Ω`, x + resistorWidth + 40, y - resistorHeight/2 + 5);
+            });
+            
+            // Add "PARALLEL" label with background for better visibility
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(centerX - 50, centerY - circuitHeight/2 - 30, 100, 25);
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(centerX - 50, centerY - circuitHeight/2 - 30, 100, 25);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PARALLEL', centerX, centerY - circuitHeight/2 - 10);
+        }
+        
+        // Draw current flow animation
+        if (isAnimating) {
+            drawCurrentFlow();
+        }
+    }
+    
+    // Get resistor band color based on value and position
+    function getResistorBandColor(value, position) {
+        // Simplified color coding for demonstration
+        const colors = {
+            0: ['#000000', '#000000', '#000000'], // 1000Ω
+            1: ['#000000', '#000000', '#000000'], // 2000Ω
+            2: ['#000000', '#000000', '#000000']  // 3000Ω
+        };
+        
+        // Return a color based on the resistor index and band position
+        const resistorIndex = Math.floor(value / 1000) - 1;
+        if (resistorIndex >= 0 && resistorIndex < 3) {
+            return colors[resistorIndex][position] || '#e74c3c';
+        }
+        
+        return '#e74c3c';
+    }
+    
+    // Draw current flow animation
+    function drawCurrentFlow() {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const circuitWidth = canvas.width * 0.8;
+        const circuitHeight = canvas.height * 0.4;
+        const batteryWidth = 60;
+        
+        // Calculate animation position based on time
+        const animationPosition = (currentTime * animationSpeed) % 1;
+        
+        // Draw electrons (dots) moving along the circuit
+        ctx.fillStyle = '#3498db';
+        
+        if (isSeries) {
+            // Series circuit - electrons flow along a single path with consistent current
+            const pathLength = circuitWidth - batteryWidth - 80;
+            const electronCount = 10;
+            
+            // Draw electrons along the main path
+            for (let i = 0; i < electronCount; i++) {
+                const offset = (animationPosition + i / electronCount) % 1;
+                const x = centerX - circuitWidth/2 + batteryWidth + 20 + offset * pathLength;
+                const y = centerY;
+                
+                // Draw electron
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw electron glow
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                gradient.addColorStop(0, 'rgba(52, 152, 219, 0.8)');
+                gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw electrons along the return path
+            const returnPathLength = circuitHeight/2 - 20 + circuitWidth/2 - 40;
+            const returnElectronCount = 5;
+            
+            for (let i = 0; i < returnElectronCount; i++) {
+                const offset = (animationPosition + i / returnElectronCount) % 1;
+                let x, y;
+                
+                if (offset < 0.3) {
+                    // Bottom horizontal part
+                    const segmentOffset = offset / 0.3;
+                    x = centerX + circuitWidth/2 - 40 - segmentOffset * (circuitWidth/2 - 40);
+                    y = centerY + circuitHeight/2 - 20;
+                } else if (offset < 0.6) {
+                    // Vertical part
+                    const segmentOffset = (offset - 0.3) / 0.3;
+                    x = centerX - circuitWidth/2;
+                    y = centerY + circuitHeight/2 - 20 - segmentOffset * (circuitHeight/2 - 20);
+                } else {
+                    // Top horizontal part
+                    const segmentOffset = (offset - 0.6) / 0.4;
+                    x = centerX - circuitWidth/2 + segmentOffset * batteryWidth;
+                    y = centerY;
+                }
+                
+                // Draw electron
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw electron glow
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                gradient.addColorStop(0, 'rgba(52, 152, 219, 0.8)');
+                gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw current intensity indicators at each resistor
+            circuit.resistors.forEach((resistor, index) => {
+                const x = centerX - circuitWidth/2 + batteryWidth + 40 + index * (circuitWidth / 4);
+                const y = centerY;
+                
+                // Current intensity is the same at all resistors in series
+                const intensity = Math.min(1, circuit.totalCurrent / 0.1);
+                
+                // Draw intensity indicator
+                ctx.fillStyle = `rgba(52, 152, 219, ${intensity * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x + 20, y, 15, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        } else {
+            // Parallel circuit - electrons flow along multiple paths with divided current
+            // Calculate current division based on resistance
+            const totalResistance = 1 / circuit.resistors.reduce((sum, r) => sum + 1/r.value, 0);
+            const totalCurrent = circuit.voltage / totalResistance;
+            const currents = circuit.resistors.map(r => circuit.voltage / r.value);
+            const currentRatios = currents.map(c => c / totalCurrent);
+            
+            // Draw electrons along each parallel path
+            const ladderStartX = centerX - circuitWidth/2 + batteryWidth + 60;
+            const ladderEndX = centerX + circuitWidth/2 - 60;
+            const ladderY = centerY;
+            
+            // Draw electrons along the main path from battery to distribution point
+            const mainPathLength = 40;
+            const mainElectronCount = 5;
+            
+            for (let i = 0; i < mainElectronCount; i++) {
+                const offset = (animationPosition + i / mainElectronCount) % 1;
+                const x = centerX - circuitWidth/2 + batteryWidth + 20 + offset * mainPathLength;
+                const y = centerY;
+                
+                // Draw electron
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw electron glow
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                gradient.addColorStop(0, 'rgba(52, 152, 219, 0.8)');
+                gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Calculate positions for resistors to be evenly spaced
+            const resistorSpacing = (circuitHeight - 80) / (circuit.resistors.length + 1);
+            const startY = ladderY - circuitHeight/2 + 40 + resistorSpacing;
+            
+            // Draw electrons along each parallel branch
+            circuit.resistors.forEach((resistor, index) => {
+                const y = startY + index * resistorSpacing;
+                const x = ladderStartX + (ladderEndX - ladderStartX) / 2 - 20;
+                const resistorWidth = 40;
+                
+                const currentRatio = currentRatios[index];
+                const electronCount = Math.max(3, Math.floor(8 * currentRatio));
+                
+                // Draw electrons along the path through the resistor
+                for (let i = 0; i < electronCount; i++) {
+                    const offset = (animationPosition + i / electronCount) % 1;
+                    let electronX, electronY;
+                    
+                    if (offset < 0.3) {
+                        // First horizontal segment to resistor
+                        const segmentOffset = offset / 0.3;
+                        electronX = ladderStartX + segmentOffset * (x - ladderStartX);
+                        electronY = y;
+                    } else if (offset < 0.7) {
+                        // Through resistor
+                        const segmentOffset = (offset - 0.3) / 0.4;
+                        electronX = x + segmentOffset * resistorWidth;
+                        electronY = y;
+                    } else {
+                        // Second horizontal segment from resistor
+                        const segmentOffset = (offset - 0.7) / 0.3;
+                        electronX = x + resistorWidth + segmentOffset * (ladderEndX - (x + resistorWidth));
+                        electronY = y;
+                    }
+                    
+                    // Draw electron
+                    ctx.fillStyle = '#3498db';
+                    ctx.beginPath();
+                    ctx.arc(electronX, electronY, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw electron glow
+                    const gradient = ctx.createRadialGradient(electronX, electronY, 0, electronX, electronY, 8);
+                    gradient.addColorStop(0, 'rgba(52, 152, 219, 0.8)');
+                    gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(electronX, electronY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Draw current intensity indicator
+                const intensity = Math.min(1, (circuit.voltage / resistor.value) / 0.1);
+                ctx.fillStyle = `rgba(52, 152, 219, ${intensity * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x + resistorWidth/2, y, 15, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw electrons along the return path
+            const returnPathLength = circuitHeight/2 - 20 + circuitWidth/2 - 40;
+            const returnElectronCount = 5;
+            
+            for (let i = 0; i < returnElectronCount; i++) {
+                const offset = (animationPosition + i / returnElectronCount) % 1;
+                let x, y;
+                
+                if (offset < 0.3) {
+                    // Bottom horizontal part
+                    const segmentOffset = offset / 0.3;
+                    x = centerX + circuitWidth/2 - 40 - segmentOffset * (circuitWidth/2 - 40);
+                    y = centerY + circuitHeight/2 - 20;
+                } else if (offset < 0.6) {
+                    // Vertical part
+                    const segmentOffset = (offset - 0.3) / 0.3;
+                    x = centerX - circuitWidth/2;
+                    y = centerY + circuitHeight/2 - 20 - segmentOffset * (circuitHeight/2 - 20);
+                } else {
+                    // Top horizontal part
+                    const segmentOffset = (offset - 0.6) / 0.4;
+                    x = centerX - circuitWidth/2 + segmentOffset * batteryWidth;
+                    y = centerY;
+                }
+                
+                // Draw electron
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw electron glow
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                gradient.addColorStop(0, 'rgba(52, 152, 219, 0.8)');
+                gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Draw voltage indicators
+        if (isAnimating) {
+            // Draw voltage drop indicators for series circuit
+            if (isSeries) {
+                const totalResistance = circuit.resistors.reduce((sum, r) => sum + r.value, 0);
+                let accumulatedVoltage = 0;
+                
+                circuit.resistors.forEach((resistor, index) => {
+                    const x = centerX - circuitWidth/2 + batteryWidth + 40 + index * (circuitWidth / 4);
+                    const y = centerY;
+                    
+                    // Calculate voltage across this resistor
+                    const voltageDrop = (resistor.value / totalResistance) * circuit.voltage;
+                    accumulatedVoltage += voltageDrop;
+                    
+                    // Draw voltage indicator with background to prevent overlap
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(x + 20 - 30, y - 40, 60, 20);
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x + 20 - 30, y - 40, 60, 20);
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${voltageDrop.toFixed(1)}V`, x + 20, y - 25);
+                });
+            } else {
+                // Draw voltage indicators for parallel circuit (same voltage across all)
+                const totalHeight = (circuit.resistors.length - 1) * (circuitHeight / 4);
+                const startY = centerY - totalHeight / 2;
+                
+                circuit.resistors.forEach((_, index) => {
+                    const y = startY + index * (circuitHeight / 4);
+                    const x = centerX - circuitWidth/2 + batteryWidth + 100;
+                    
+                    // Draw voltage indicator with background - position to avoid overlap
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillRect(x + 20 - 30, y - 40, 60, 20);
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x + 20 - 30, y - 40, 60, 20);
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${circuit.voltage.toFixed(1)}V`, x + 20, y - 25);
+                });
+            }
+        }
+    }
+
+    // Animation loop
+    function animate() {
+        if (!isAnimating) return;
+        
+        currentTime += 0.016; // Approximately 60 FPS
+        drawCircuit();
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    // Update circuit
+    function updateCircuit() {
+        calculateCircuitValues();
+        drawCircuit();
+    }
+
+    // Reset circuit
+    function resetCircuit() {
+        circuit.voltage = 6;
+        circuit.resistors = [
+            { value: 1000, color: '#e74c3c' },
+            { value: 2000, color: '#2ecc71' },
+            { value: 3000, color: '#3498db' }
+        ];
+        
+        document.getElementById('voltageSlider').value = circuit.voltage;
+        document.getElementById('voltageValue').textContent = `${circuit.voltage.toFixed(1)} V`;
+        
+        circuit.resistors.forEach((resistor, index) => {
+            document.getElementById(`resistor${index + 1}Slider`).value = resistor.value;
+            document.getElementById(`resistor${index + 1}Value`).textContent = `${resistor.value} Ω`;
+        });
+        
+        updateCircuit();
+    }
+
+    // Initialize
+    resizeCanvas();
+    initializeControls();
+    updateCircuit();
+  </script>
+</body>
+</html> 

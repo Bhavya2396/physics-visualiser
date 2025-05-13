@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohm's Law Visualization</title>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #2a2a2a;
+            --accent: #4a9eff;
+            --text: #ffffff;
+            --heat: #ff4444;
+        }
+        body {
+            background: var(--primary);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            padding: 32px 0;
+        }
+        .visualization-container {
+            display: flex;
+            gap: 32px;
+            background: var(--secondary);
+            border-radius: 15px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .circuit-panel {
+            background: var(--primary);
+            border-radius: 10px;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+        }
+        .control-panel {
+            background: var(--primary);
+            border-radius: 10px;
+            padding: 24px 20px;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .control-group {
+            margin-bottom: 18px;
+        }
+        .control-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--accent);
+        }
+        .control-slider {
+            width: 100%;
+            margin: 8px 0 0 0;
+            background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+            border-radius: 4px;
+            height: 8px;
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+        }
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: -6px;
+        }
+        .control-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .control-value {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .meter {
+            background: var(--secondary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 12px;
+        }
+        .meter-value {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+        .formula {
+            background: var(--secondary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .formula-text {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--accent);
+        }
+        @media (max-width: 900px) {
+            .visualization-container { 
+                flex-direction: column; 
+                align-items: center; 
+            }
+            .circuit-panel { 
+                margin-bottom: 24px; 
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <div class="visualization-container">
+            <div class="circuit-panel">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+            <div class="control-panel">
+                <div class="control-group">
+                    <div class="control-label">Voltage (V)</div>
+                    <input type="range" class="control-slider" id="voltageSlider" min="0" max="12" value="6" step="0.1">
+                    <div class="control-value" id="voltageValue">6.0 V</div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Resistance (Ω)</div>
+                    <input type="range" class="control-slider" id="resistanceSlider" min="100" max="2000" value="1000" step="100">
+                    <div class="control-value" id="resistanceValue">1000 Ω</div>
+                </div>
+                <div class="meter">
+                    <div>Current</div>
+                    <div class="meter-value" id="currentMeter">6.0 mA</div>
+                </div>
+                <div class="meter">
+                    <div>Voltage</div>
+                    <div class="meter-value" id="voltageMeter">6.0 V</div>
+                </div>
+                <div class="meter">
+                    <div>Resistance</div>
+                    <div class="meter-value" id="resistanceMeter">1000 Ω</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId = null;
+        let electrons = [];
+
+        // Circuit parameters
+        const circuit = {
+            voltage: 6,
+            resistance: 1000,
+            current: 0,
+            power: 0
+        };
+
+        // Colors
+        const colors = {
+            background: '#1a1a1a',
+            wire: '#4a9eff',
+            battery: {
+                body: '#ffb347',
+                terminal: '#ffd700',
+                glow: '#ff8c00'
+            },
+            resistor: {
+                body: '#ff4444',
+                bands: ['#ff4444', '#ff6b6b', '#ff8c8c'],
+                glow: '#ff0000'
+            },
+            electron: {
+                core: '#4a9eff',
+                glow: '#00a2ff',
+                trail: '#4a9eff'
+            },
+            glow: '#4a9eff'
+        };
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            drawCircuit();
+        }
+
+        function calculateCircuit() {
+            circuit.current = (circuit.voltage / circuit.resistance) * 1000; // Convert to mA
+            circuit.power = (circuit.voltage * circuit.voltage / circuit.resistance) * 1000; // Convert to mW
+            document.getElementById('currentMeter').textContent = `${circuit.current.toFixed(1)} mA`;
+            document.getElementById('voltageMeter').textContent = `${circuit.voltage.toFixed(1)} V`;
+            document.getElementById('resistanceMeter').textContent = `${circuit.resistance.toFixed(0)} Ω`;
+        }
+
+        function createElectrons() {
+            electrons = [];
+            const numElectrons = Math.max(8, Math.floor(circuit.current * 2));
+            for (let i = 0; i < numElectrons; i++) {
+                electrons.push({
+                    x: 100,
+                    y: canvas.height / 2 + (Math.random() - 0.5) * 40,
+                    speed: 2 + Math.random() * 2,
+                    progress: Math.random()
+                });
+            }
+        }
+
+        function drawBattery(x, y, width, height) {
+            // Battery body with gradient
+            const gradient = ctx.createLinearGradient(x, y, x + width, y);
+            gradient.addColorStop(0, colors.battery.body);
+            gradient.addColorStop(1, colors.battery.glow);
+            
+            // Main body
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, width, height);
+            
+            // Battery outline with glow
+            ctx.strokeStyle = colors.battery.terminal;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Battery terminals with metallic effect
+            const terminalWidth = 8;
+            const terminalHeight = 20;
+            
+            // Positive terminal
+            ctx.fillStyle = colors.battery.terminal;
+            ctx.fillRect(x + width - terminalWidth, y + (height - terminalHeight)/2, terminalWidth, terminalHeight);
+            
+            // Negative terminal
+            ctx.fillRect(x, y + (height - terminalHeight)/2, terminalWidth, terminalHeight);
+            
+            // Terminal highlights
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(x + width - terminalWidth, y + (height - terminalHeight)/2, terminalWidth, 2);
+            ctx.fillRect(x, y + (height - terminalHeight)/2, terminalWidth, 2);
+            
+            // Battery labels with glow
+            ctx.shadowColor = colors.battery.glow;
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('+', x + width - terminalWidth/2, y + height/2 + 5);
+            ctx.fillText('-', x + terminalWidth/2, y + height/2 + 5);
+            
+            // Voltage label with glow
+            ctx.fillStyle = colors.battery.body;
+            ctx.font = '14px Arial';
+            ctx.fillText(`${circuit.voltage.toFixed(1)}V`, x + width/2, y - 10);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawResistor(x, y, width, height) {
+            // Resistor body with gradient
+            const gradient = ctx.createLinearGradient(x, y, x + width, y);
+            gradient.addColorStop(0, colors.resistor.body);
+            gradient.addColorStop(1, colors.resistor.glow);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, width, height);
+            
+            // Resistor outline with glow
+            ctx.strokeStyle = colors.resistor.glow;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Resistor bands
+            const bandWidth = width / 6;
+            const bandSpacing = bandWidth / 2;
+            
+            colors.resistor.bands.forEach((color, i) => {
+                const bandX = x + bandSpacing + i * (bandWidth + bandSpacing);
+                ctx.fillStyle = color;
+                ctx.fillRect(bandX, y, bandWidth, height);
+            });
+            
+            // Resistance label with glow
+            ctx.shadowColor = colors.resistor.glow;
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = colors.resistor.body;
+            ctx.font = '14px Arial';
+            ctx.fillText(`${circuit.resistance}Ω`, x + width/2, y - 10);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawWire(x1, y1, x2, y2) {
+            // Wire glow effect
+            ctx.shadowColor = colors.glow;
+            ctx.shadowBlur = 15;
+            
+            // Main wire
+            ctx.strokeStyle = colors.wire;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // Wire highlight
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1 - 1);
+            ctx.lineTo(x2, y2 - 1);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawElectrons() {
+            electrons.forEach(electron => {
+                // Update position
+                electron.progress += 0.005 * (circuit.current / 6); // Normalize speed
+                if (electron.progress > 1) {
+                    electron.progress = 0;
+                    electron.x = 100;
+                    electron.y = canvas.height / 2 + (Math.random() - 0.5) * 40;
+                }
+
+                // Calculate position along the circuit path
+                const pathLength = canvas.width - 200;
+                const x = 100 + electron.progress * pathLength;
+                const y = canvas.height / 2 + Math.sin(electron.progress * Math.PI * 4) * 20;
+
+                // Draw electron trail
+                ctx.beginPath();
+                ctx.moveTo(x - 20, y);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = colors.electron.trail;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.3;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Draw electron glow
+                ctx.shadowColor = colors.electron.glow;
+                ctx.shadowBlur = 15;
+                
+                // Draw electron core
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = colors.electron.core;
+                ctx.fill();
+                
+                // Draw electron highlight
+                ctx.beginPath();
+                ctx.arc(x - 1, y - 1, 1, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function drawCircuit() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = colors.background;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const batteryWidth = 60;
+            const batteryHeight = 40;
+            const resistorWidth = 80;
+            const resistorHeight = 30;
+
+            // Draw battery
+            drawBattery(50, canvas.height/2 - batteryHeight/2, batteryWidth, batteryHeight);
+
+            // Draw resistor
+            drawResistor(canvas.width - 150, canvas.height/2 - resistorHeight/2, resistorWidth, resistorHeight);
+
+            // Draw wires
+            drawWire(50 + batteryWidth, canvas.height/2, canvas.width - 150, canvas.height/2);
+            drawWire(canvas.width - 150 + resistorWidth, canvas.height/2, canvas.width - 50, canvas.height/2);
+            drawWire(canvas.width - 50, canvas.height/2, 50, canvas.height/2);
+
+            // Draw electrons
+            drawElectrons();
+
+            // Draw current direction arrow with glow
+            ctx.shadowColor = colors.glow;
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = colors.wire;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, canvas.height/2 - 30);
+            ctx.lineTo(canvas.width/2 + 10, canvas.height/2 - 20);
+            ctx.lineTo(canvas.width/2 - 10, canvas.height/2 - 20);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw current label with glow
+            ctx.fillStyle = colors.wire;
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('I', canvas.width/2, canvas.height/2 - 40);
+            ctx.shadowBlur = 0;
+        }
+
+        function animate() {
+            drawCircuit();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Initialize controls
+        document.getElementById('voltageSlider').addEventListener('input', (e) => {
+            circuit.voltage = parseFloat(e.target.value);
+            document.getElementById('voltageValue').textContent = `${circuit.voltage.toFixed(1)} V`;
+            calculateCircuit();
+            createElectrons();
+        });
+
+        document.getElementById('resistanceSlider').addEventListener('input', (e) => {
+            circuit.resistance = parseFloat(e.target.value);
+            document.getElementById('resistanceValue').textContent = `${circuit.resistance.toFixed(0)} Ω`;
+            calculateCircuit();
+            createElectrons();
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            calculateCircuit();
+            createElectrons();
+            animate();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html> 

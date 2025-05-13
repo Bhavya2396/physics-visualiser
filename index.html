@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics Visualizations</title>
+  <style>
+    :root {
+      --primary: #181c22;
+      --secondary: #232a36;
+      --accent: #4a9eff;
+      --text: #fff;
+      --glow: #4a9eff;
+    }
+    body {
+      background: var(--primary);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100vw;
+      max-width: 1100px;
+      padding: 48px 0 32px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
+    }
+    h1 {
+      font-size: 2.6rem;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 18px var(--glow);
+      margin-bottom: 0.2em;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 32px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .card {
+      background: var(--secondary);
+      border-radius: 16px;
+      box-shadow: 0 0 24px 2px #222a;
+      padding: 36px 24px 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .card:hover, .card:focus {
+      box-shadow: 0 0 36px 8px var(--glow);
+      border: 2px solid var(--accent);
+      background: #232a36;
+      transform: translateY(-4px) scale(1.03);
+      outline: none;
+    }
+    .card-title {
+      font-size: 1.25rem;
+      color: var(--accent);
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      margin-bottom: 0.2em;
+      text-shadow: 0 0 8px var(--glow);
+    }
+    .card-desc {
+      color: #b0cfff;
+      font-size: 1rem;
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 0.2em;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 18px 0 8px 0; }
+      h1 { font-size: 2rem; }
+      .card-grid { gap: 18px; }
+      .card { padding: 22px 10px 16px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Physics Visualizations</h1>
+    <div class="card-grid">
+      <a class="card" href="electric-current.html" tabindex="0">
+        <div class="card-title">Electric Current</div>
+        <div class="card-desc">Visualize current flow and electron movement.</div>
+      </a>
+      <a class="card" href="electric-potential.html" tabindex="0">
+        <div class="card-title">Electric Potential</div>
+        <div class="card-desc">Explore battery chemistry and potential difference.</div>
+      </a>
+      <a class="card" href="factors-affecting.html" tabindex="0">
+        <div class="card-title">Factors Affecting Resistance</div>
+        <div class="card-desc">Interact with material, length, area, and temperature.</div>
+      </a>
+      <a class="card" href="ohms-law.html" tabindex="0">
+        <div class="card-title">Ohm's Law</div>
+        <div class="card-desc">Experiment with voltage, resistance, and current.</div>
+      </a>
+      <a class="card" href="resistance.html" tabindex="0">
+        <div class="card-title">Resistance</div>
+        <div class="card-desc">See resistance as a field of obstacles for electrons.</div>
+      </a>
+      <a class="card" href="heating-effect.html" tabindex="0">
+        <div class="card-title">Heating Effect</div>
+        <div class="card-desc">Visualize the heating effect and filament glow.</div>
+      </a>
+      <a class="card" href="circuit-configurations.html" tabindex="0">
+        <div class="card-title">Circuit Configurations</div>
+        <div class="card-desc">Compare series, parallel, and mixed circuits.</div>
+      </a>
+      <a class="card" href="circuit-components.html" tabindex="0">
+        <div class="card-title">Circuit Components</div>
+        <div class="card-desc">Explore a simple circuit and its components.</div>
+      </a>
+      <a class="card" href="electric-power.html" tabindex="0">
+        <div class="card-title">Electric Power</div>
+        <div class="card-desc">See how power activates appliances and flows.</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html> 

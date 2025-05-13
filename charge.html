@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electric Charge - Interactive Visualization</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --background-color: #f5f6fa;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+      --positive-color: #e74c3c;
+      --negative-color: #3498db;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(52, 152, 219, 0.1), transparent),
+                  radial-gradient(circle at bottom right, rgba(231, 76, 60, 0.1), transparent);
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 4fr 1fr;
+      overflow: hidden;
+    }
+    
+    .visualization-container {
+      padding: 1.5rem;
+      position: relative;
+      background: #f8f9fa;
+    }
+    
+    .canvas-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls-panel {
+      padding: 1rem;
+      background: var(--card-bg);
+      border-left: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .charge-toggle {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .charge-toggle label {
+      font-size: 0.9rem;
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    .toggle-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .toggle-btn {
+      padding: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .toggle-btn.positive {
+      background: var(--positive-color);
+      color: white;
+    }
+
+    .toggle-btn.negative {
+      background: var(--negative-color);
+      color: white;
+    }
+
+    .toggle-btn.active {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        aspect-ratio: auto;
+        height: auto;
+      }
+
+      .visualization-container {
+        height: 50vh;
+      }
+
+      .controls-panel {
+        border-left: none;
+        border-top: 1px solid #eee;
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="visualization-container">
+      <div class="canvas-wrapper">
+        <canvas id="charge-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="charge-toggle">
+        <label>Select Charge Type</label>
+        <div class="toggle-buttons">
+          <button class="toggle-btn positive active" data-charge="positive">
+            <i class="fas fa-plus"></i> +
+          </button>
+          <button class="toggle-btn negative" data-charge="negative">
+            <i class="fas fa-minus"></i> -
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('charge-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let selectedCharge = 'positive';
+    let isAnimating = true;
+    let mouseX = 0;
+    let mouseY = 0;
+    let isDragging = false;
+    let draggedParticle = null;
+
+    // Particle class
+    class Particle {
+      constructor(x, y, charge) {
+        this.x = x;
+        this.y = y;
+        this.charge = charge;
+        this.radius = 15;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.ax = 0;
+        this.ay = 0;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.charge === 'positive' ? '#e74c3c' : '#3498db';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw + or - symbol
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.charge === 'positive' ? '+' : '−', this.x, this.y);
+
+        // Draw charge field
+        const gradient = ctx.createRadialGradient(
+          this.x, this.y, this.radius,
+          this.x, this.y, this.radius * 3
+        );
+        gradient.addColorStop(0, `${this.charge === 'positive' ? '#e74c3c' : '#3498db'}33`);
+        gradient.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+
+      update() {
+        if (this === draggedParticle) {
+          this.x = mouseX;
+          this.y = mouseY;
+          this.vx = 0;
+          this.vy = 0;
+          return;
+        }
+
+        // Calculate forces from other particles
+        this.ax = 0;
+        this.ay = 0;
+        particles.forEach(other => {
+          if (other !== this) {
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 200) {
+              const force = 0.5 / (distance * distance);
+              const angle = Math.atan2(dy, dx);
+              // Like charges repel, opposite charges attract
+              const sameSigns = this.charge === other.charge;
+              this.ax += -Math.cos(angle) * force * (sameSigns ? 1 : -1);
+              this.ay += -Math.sin(angle) * force * (sameSigns ? 1 : -1);
+            }
+          }
+        });
+
+        // Update velocity and position
+        this.vx += this.ax;
+        this.vy += this.ay;
+        this.vx *= 0.99; // Damping
+        this.vy *= 0.99;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Bounce off walls
+        if (this.x < this.radius) {
+          this.x = this.radius;
+          this.vx *= -0.8;
+        }
+        if (this.x > canvas.width - this.radius) {
+          this.x = canvas.width - this.radius;
+          this.vx *= -0.8;
+        }
+        if (this.y < this.radius) {
+          this.y = this.radius;
+          this.vy *= -0.8;
+        }
+        if (this.y > canvas.height - this.radius) {
+          this.y = canvas.height - this.radius;
+          this.vy *= -0.8;
+        }
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+
+    function initializeParticles() {
+      particles = [];
+      // Add some particles of each charge
+      for (let i = 0; i < 3; i++) {
+        particles.push(new Particle(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          'positive'
+        ));
+        particles.push(new Particle(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          'negative'
+        ));
+      }
+    }
+
+    function animate() {
+      if (!isAnimating) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Event Listeners
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+
+      particles.forEach(particle => {
+        const dx = mouseX - particle.x;
+        const dy = mouseY - particle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < particle.radius) {
+          isDragging = true;
+          draggedParticle = particle;
+        }
+      });
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+      draggedParticle = null;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+      draggedParticle = null;
+    });
+
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedCharge = btn.dataset.charge;
+      });
+    });
+
+    canvas.addEventListener('dblclick', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      particles.push(new Particle(x, y, selectedCharge));
+    });
+
+    // Initialize visualization
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      initializeParticles();
+      animate();
+    });
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      initializeParticles();
+    });
+  </script>
+</body>
+</html> 

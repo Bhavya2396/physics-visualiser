@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resistance Visualization</title>
+  <style>
+    :root {
+      --primary: #181c22;
+      --secondary: #23272e;
+      --accent: #4a9eff;
+      --danger: #ff4444;
+      --success: #2ecc71;
+      --text: #ffffff;
+      --electron: #4a9eff;
+      --glow: 0 0 16px 2px var(--accent);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--primary);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100vw;
+      max-width: 700px;
+      padding: 40px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    .visualization-panel {
+      background: var(--secondary);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      padding: 32px 32px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    .canvas-container {
+      background: var(--primary);
+      border-radius: 12px;
+      box-shadow: 0 0 0 2px #23272e, 0 8px 32px rgba(74,158,255,0.08);
+      overflow: hidden;
+      width: 600px;
+      height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    canvas {
+      width: 600px;
+      height: 260px;
+      display: block;
+      background: #181c22;
+      border-radius: 12px;
+    }
+    .controls {
+      display: flex;
+      gap: 32px;
+      margin-top: 0;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .control-group {
+      background: var(--primary);
+      border-radius: 10px;
+      padding: 18px 20px 14px 20px;
+      min-width: 210px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+    }
+    .control-label {
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    .slider {
+      width: 100%;
+      margin: 0;
+      background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+      border-radius: 4px;
+      height: 8px;
+      outline: none;
+      -webkit-appearance: none;
+      box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: -6px;
+      box-shadow: var(--glow);
+    }
+    .slider::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 16px 4px var(--accent);
+    }
+    .slider::-webkit-slider-runnable-track {
+      background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+      border-radius: 4px;
+      height: 8px;
+    }
+    .value-display {
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--accent);
+      text-align: right;
+      margin-top: 0.1rem;
+      background: none;
+      padding: 0;
+    }
+    @media (max-width: 700px) {
+      .canvas-container { width: 98vw; height: 44vw; min-width: 0; min-height: 0; max-width: 99vw; max-height: 60vw; }
+      canvas { width: 98vw; height: 44vw; }
+      .visualization-panel { padding: 12px 2vw 12px 2vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="visualization-panel">
+      <div class="canvas-container">
+        <canvas id="resistance-canvas" width="600" height="260"></canvas>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Resistance (Ω)</div>
+          <input type="range" class="slider" id="resistance-slider" min="0" max="1000" value="500" step="10">
+          <div class="value-display" id="resistance-value">500 Ω</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const resistanceCanvas = document.getElementById('resistance-canvas');
+    const ctx = resistanceCanvas.getContext('2d');
+    let particles = [];
+    const PARTICLE_COUNT = 40;
+    let resistanceValue = 500;
+    let animationTime = 0;
+    let atoms = [];
+    const ATOM_BASE = 8;
+    const ATOM_MAX = 38;
+
+    function resizeCanvas() {
+      const container = resistanceCanvas.parentElement;
+      resistanceCanvas.width = container.clientWidth;
+      resistanceCanvas.height = container.clientHeight;
+    }
+
+    function initializeParticles() {
+      particles = [];
+      const startX = resistanceCanvas.width * 0.13;
+      const endX = resistanceCanvas.width * 0.87;
+      const centerY = resistanceCanvas.height * 0.5;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push({
+          x: startX + Math.random() * (endX - startX),
+          y: centerY + (Math.random() - 0.5) * resistanceCanvas.height * 0.18,
+          speed: 2 + Math.random() * 2,
+          size: 3 + Math.random() * 2,
+          initialY: centerY + (Math.random() - 0.5) * resistanceCanvas.height * 0.18
+        });
+      }
+    }
+
+    function initializeAtoms() {
+      atoms = [];
+      const centerX = resistanceCanvas.width/2;
+      const centerY = resistanceCanvas.height/2;
+      const resistorWidth = resistanceCanvas.width*0.62;
+      const resistorHeight = resistanceCanvas.height*0.22;
+      const atomCount = Math.round(ATOM_BASE + (ATOM_MAX-ATOM_BASE)*(resistanceValue/1000));
+      for(let i=0;i<atomCount;i++) {
+        const x = centerX - resistorWidth/2 + Math.random()*resistorWidth;
+        const y = centerY - resistorHeight/2 + Math.random()*resistorHeight;
+        atoms.push({x, y, r: 7+Math.random()*6});
+      }
+    }
+
+    function drawResistorField(centerX, centerY, width, height) {
+      // Glow
+      const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, width*0.7);
+      glowGradient.addColorStop(0, 'rgba(74,158,255,0.18)');
+      glowGradient.addColorStop(1, 'transparent');
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, width*0.7, 0, Math.PI*2);
+      ctx.fillStyle = glowGradient;
+      ctx.fill();
+      ctx.restore();
+      // Body
+      ctx.save();
+      ctx.shadowColor = '#4a9eff';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#23272e';
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.rect(centerX-width/2, centerY-height/2, width, height);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      // Atoms (obstacles)
+      atoms.forEach(atom => {
+        const grad = ctx.createRadialGradient(atom.x, atom.y, 0, atom.x, atom.y, atom.r*1.2);
+        grad.addColorStop(0, 'rgba(255,255,255,0.7)');
+        grad.addColorStop(0.7, 'rgba(74,158,255,0.25)');
+        grad.addColorStop(1, 'rgba(74,158,255,0)');
+        ctx.beginPath();
+        ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI*2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+    }
+
+    function drawResistanceVisualization() {
+      ctx.clearRect(0, 0, resistanceCanvas.width, resistanceCanvas.height);
+      animationTime += 0.016;
+      const centerX = resistanceCanvas.width/2;
+      const centerY = resistanceCanvas.height/2;
+      const resistorWidth = resistanceCanvas.width*0.62;
+      const resistorHeight = resistanceCanvas.height*0.22;
+      // Wires
+      ctx.save();
+      ctx.strokeStyle = '#4a9eff';
+      ctx.shadowColor = '#4a9eff';
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(centerX-resistorWidth/2-40, centerY);
+      ctx.lineTo(centerX-resistorWidth/2, centerY);
+      ctx.moveTo(centerX+resistorWidth/2, centerY);
+      ctx.lineTo(centerX+resistorWidth/2+40, centerY);
+      ctx.stroke();
+      ctx.restore();
+      // Resistor field
+      drawResistorField(centerX, centerY, resistorWidth, resistorHeight);
+      // Animate electrons
+      const particleSpeed = 0.25 + 0.75 * (1 - resistanceValue/1000);
+      // Color: blue (low R) to red (high R)
+      const electronColor = resistanceValue < 500
+        ? `rgba(74,158,255,1)`
+        : `rgba(${74 + (255-74)*((resistanceValue-500)/500)},${158 - 158*((resistanceValue-500)/500)},${255 - 255*((resistanceValue-500)/500)},1)`;
+      particles.forEach(particle => {
+        // Move forward
+        particle.x += particle.speed * particleSpeed;
+        // Find nearest atom in field
+        let minDist = 9999, nearest = null;
+        atoms.forEach(atom => {
+          const dx = particle.x - atom.x, dy = particle.y - atom.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if(dist < atom.r*1.2 && dist < minDist) { minDist = dist; nearest = atom; }
+        });
+        // If close to atom, bounce vertically
+        if(nearest && Math.abs(particle.x - nearest.x) < nearest.r*1.2) {
+          particle.y += (Math.random()-0.5)*8;
+        }
+        // Oscillation
+        particle.y = Math.max(centerY-resistorHeight/2+6, Math.min(centerY+resistorHeight/2-6, particle.y));
+        // Reset if off right
+        if(particle.x > centerX+resistorWidth/2+40) {
+          particle.x = centerX-resistorWidth/2-40;
+          particle.y = centerY + (Math.random()-0.5)*resistorHeight*0.8;
+        }
+        // Glow
+        const glow = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size*2
+        );
+        glow.addColorStop(0, electronColor.replace('1)', '0.8)'));
+        glow.addColorStop(1, electronColor.replace('1)', '0)'));
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size*2, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = electronColor;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI*2);
+        ctx.fill();
+      });
+      // Resistance value
+      ctx.save();
+      ctx.font = 'bold 22px Inter, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#4a9eff';
+      ctx.shadowColor = '#4a9eff';
+      ctx.shadowBlur = 18;
+      ctx.fillText(`${resistanceValue} Ω`, centerX, centerY-resistorHeight/2-18);
+      ctx.restore();
+      requestAnimationFrame(drawResistanceVisualization);
+    }
+    // Controls
+    const resistanceSlider = document.getElementById('resistance-slider');
+    const resistanceDisplay = document.getElementById('resistance-value');
+    resistanceSlider.addEventListener('input', function(e) {
+      resistanceValue = parseInt(e.target.value);
+      resistanceDisplay.textContent = `${resistanceValue} Ω`;
+      initializeAtoms();
+    });
+    // Init
+    window.addEventListener('load', function() {
+      resizeCanvas();
+      initializeParticles();
+      initializeAtoms();
+      drawResistanceVisualization();
+    });
+    window.addEventListener('resize', function() {
+      resizeCanvas();
+      initializeParticles();
+      initializeAtoms();
+    });
+  </script>
+</body>
+</html> 

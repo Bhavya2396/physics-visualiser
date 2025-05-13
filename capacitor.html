@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capacitor Visualization</title>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2ecc71;
+      --accent-color: #e74c3c;
+      --dark-color: #2c3e50;
+      --light-color: #ecf0f1;
+      --text-color: #333;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f7fa;
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      color: #666;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    
+    .visualization-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    
+    .canvas-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      position: relative;
+      height: 500px;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .control-panel {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .control-panel h2 {
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .control-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .slider {
+      flex-grow: 1;
+      height: 8px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #ddd;
+      outline: none;
+      border-radius: 4px;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .slider-value {
+      min-width: 50px;
+      text-align: right;
+      font-weight: bold;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .btn {
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .primary-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .primary-btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .secondary-btn {
+      background-color: #95a5a6;
+      color: white;
+    }
+    
+    .secondary-btn:hover {
+      background-color: #7f8c8d;
+    }
+    
+    .info-panel {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .info-panel h2 {
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .info-content {
+      margin-bottom: 1.5rem;
+    }
+    
+    .formula-box {
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .formula {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .meter-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+    
+    .meter {
+      text-align: center;
+    }
+    
+    .meter-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .meter-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    @media (max-width: 768px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    
+    <header>
+      <h1>Capacitor Visualization</h1>
+      <p class="subtitle">Explore how capacitors store electrical energy</p>
+    </header>
+    
+    <div class="visualization-container">
+      <div class="canvas-container">
+        <canvas id="capacitorCanvas"></canvas>
+      </div>
+      
+      <div class="controls">
+        <div class="control-panel">
+          <h2>Controls</h2>
+          
+          <div class="control-group">
+            <label for="voltageSlider">Battery Voltage (V)</label>
+            <div class="slider-container">
+              <input type="range" id="voltageSlider" min="0" max="12" value="6" class="slider">
+              <span id="voltageValue" class="slider-value">6V</span>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <label for="capacitanceSlider">Capacitance (μF)</label>
+            <div class="slider-container">
+              <input type="range" id="capacitanceSlider" min="1" max="100" value="10" class="slider">
+              <span id="capacitanceValue" class="slider-value">10 μF</span>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <label for="resistanceSlider">Circuit Resistance (Ω)</label>
+            <div class="slider-container">
+              <input type="range" id="resistanceSlider" min="100" max="10000" value="1000" class="slider">
+              <span id="resistanceValue" class="slider-value">1000 Ω</span>
+            </div>
+          </div>
+          
+          <div class="button-group">
+            <button id="chargeBtn" class="btn primary-btn">Charge</button>
+            <button id="dischargeBtn" class="btn secondary-btn">Discharge</button>
+            <button id="resetBtn" class="btn secondary-btn">Reset</button>
+          </div>
+        </div>
+        
+        <div class="info-panel">
+          <h2>About Capacitors</h2>
+          <div class="info-content">
+            <p>A capacitor is a device that stores electrical energy in an electric field. It consists of two conductive plates separated by an insulating material (dielectric).</p>
+            <p>Key points about capacitors:</p>
+            <ul>
+              <li>Capacitors store charge on their plates</li>
+              <li>The amount of charge stored depends on the voltage and capacitance</li>
+              <li>Capacitors resist changes in voltage</li>
+              <li>During charging, current is highest initially and decreases over time</li>
+              <li>During discharging, voltage decreases exponentially</li>
+            </ul>
+          </div>
+          
+          <div class="meter-container">
+            <div class="meter">
+              <div class="meter-value" id="chargeValue">0 μC</div>
+              <div class="meter-label">Charge</div>
+            </div>
+            <div class="meter">
+              <div class="meter-value" id="currentValue">0 mA</div>
+              <div class="meter-label">Current</div>
+            </div>
+            <div class="meter">
+              <div class="meter-value" id="energyValue">0 μJ</div>
+              <div class="meter-label">Energy</div>
+            </div>
+          </div>
+          
+          <div class="formula-box">
+            <h3>Capacitor Formulas</h3>
+            <div class="formula">Q = C × V</div>
+            <p>Where:</p>
+            <ul>
+              <li>Q = Charge (Coulombs)</li>
+              <li>C = Capacitance (Farads)</li>
+              <li>V = Voltage (Volts)</li>
+            </ul>
+            <div class="formula" style="margin-top: 1rem;">E = ½ × C × V²</div>
+            <p>Where:</p>
+            <ul>
+              <li>E = Energy stored (Joules)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('capacitorCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Capacitor parameters
+    let voltage = 6; // V
+    let capacitance = 10; // μF
+    let resistance = 1000; // Ω
+    let charge = 0; // μC
+    let current = 0; // mA
+    let energy = 0; // μJ
+    let isCharging = false;
+    let isDischarging = false;
+    let animationId = null;
+    let startTime = 0;
+    
+    // Slider elements
+    const voltageSlider = document.getElementById('voltageSlider');
+    const voltageValue = document.getElementById('voltageValue');
+    const capacitanceSlider = document.getElementById('capacitanceSlider');
+    const capacitanceValue = document.getElementById('capacitanceValue');
+    const resistanceSlider = document.getElementById('resistanceSlider');
+    const resistanceValue = document.getElementById('resistanceValue');
+    
+    // Button elements
+    const chargeBtn = document.getElementById('chargeBtn');
+    const dischargeBtn = document.getElementById('dischargeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    // Meter elements
+    const chargeMeter = document.getElementById('chargeValue');
+    const currentMeter = document.getElementById('currentValue');
+    const energyMeter = document.getElementById('energyValue');
+    
+    // Update slider values
+    voltageSlider.addEventListener('input', () => {
+      voltageValue.textContent = `${voltageSlider.value}V`;
+      voltage = parseFloat(voltageSlider.value);
+    });
+    
+    capacitanceSlider.addEventListener('input', () => {
+      capacitanceValue.textContent = `${capacitanceSlider.value} μF`;
+      capacitance = parseFloat(capacitanceSlider.value);
+    });
+    
+    resistanceSlider.addEventListener('input', () => {
+      resistanceValue.textContent = `${resistanceSlider.value} Ω`;
+      resistance = parseFloat(resistanceSlider.value);
+    });
+    
+    // Charge button
+    chargeBtn.addEventListener('click', () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      isCharging = true;
+      isDischarging = false;
+      startTime = performance.now();
+      animate();
+    });
+    
+    // Discharge button
+    dischargeBtn.addEventListener('click', () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      isCharging = false;
+      isDischarging = true;
+      startTime = performance.now();
+      animate();
+    });
+    
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      isCharging = false;
+      isDischarging = false;
+      charge = 0;
+      current = 0;
+      energy = 0;
+      updateMeters();
+      drawCircuit();
+    });
+    
+    // Update meters
+    function updateMeters() {
+      chargeMeter.textContent = `${charge.toFixed(2)} μC`;
+      currentMeter.textContent = `${current.toFixed(2)} mA`;
+      energyMeter.textContent = `${energy.toFixed(2)} μJ`;
+    }
+    
+    // Calculate circuit values
+    function calculateValues(time) {
+      const tau = resistance * capacitance * 1e-6; // Time constant in seconds
+      const maxCharge = capacitance * voltage; // Maximum charge in μC
+      
+      if (isCharging) {
+        // Charging equation: Q = Qmax * (1 - e^(-t/tau))
+        charge = maxCharge * (1 - Math.exp(-time / tau));
+        current = (voltage / resistance) * Math.exp(-time / tau) * 1000; // Convert to mA
+      } else if (isDischarging) {
+        // Discharging equation: Q = Q0 * e^(-t/tau)
+        const initialCharge = maxCharge;
+        charge = initialCharge * Math.exp(-time / tau);
+        current = -(charge / (resistance * capacitance)) * 1000; // Convert to mA
+      }
+      
+      // Calculate energy: E = ½ * Q² / C
+      energy = 0.5 * charge * charge / capacitance;
+    }
+    
+    // Draw circuit
+    function drawCircuit() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set styles
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#333';
+      ctx.fillStyle = '#333';
+      
+      // Draw battery
+      const batteryX = canvas.width * 0.2;
+      const batteryY = canvas.height * 0.5;
+      const batteryWidth = 60;
+      const batteryHeight = 40;
+      
+      ctx.beginPath();
+      ctx.rect(batteryX - batteryWidth / 2, batteryY - batteryHeight / 2, batteryWidth, batteryHeight);
+      ctx.stroke();
+      
+      // Draw battery terminals
+      ctx.beginPath();
+      ctx.moveTo(batteryX - batteryWidth / 2, batteryY - batteryHeight / 2);
+      ctx.lineTo(batteryX - batteryWidth / 2, batteryY + batteryHeight / 2);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(batteryX + batteryWidth / 2, batteryY - batteryHeight / 2);
+      ctx.lineTo(batteryX + batteryWidth / 2, batteryY + batteryHeight / 2);
+      ctx.stroke();
+      
+      // Draw battery voltage
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${voltage}V`, batteryX, batteryY + batteryHeight / 2 + 20);
+      
+      // Draw capacitor
+      const capacitorX = canvas.width * 0.6;
+      const capacitorY = canvas.height * 0.5;
+      const capacitorWidth = 80;
+      const capacitorHeight = 60;
+      
+      // Draw capacitor plates
+      ctx.beginPath();
+      ctx.rect(capacitorX - capacitorWidth / 2, capacitorY - capacitorHeight / 2, capacitorWidth / 10, capacitorHeight);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.rect(capacitorX + capacitorWidth / 2 - capacitorWidth / 10, capacitorY - capacitorHeight / 2, capacitorWidth / 10, capacitorHeight);
+      ctx.fill();
+      
+      // Draw capacitor label
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${capacitance} μF`, capacitorX, capacitorY + capacitorHeight / 2 + 20);
+      
+      // Draw resistor
+      const resistorX = canvas.width * 0.4;
+      const resistorY = canvas.height * 0.5;
+      const resistorWidth = 60;
+      const resistorHeight = 20;
+      
+      // Draw zigzag resistor
+      const segments = 5;
+      const segmentWidth = resistorWidth / segments;
+      const zigzagDepth = 10;
+      
+      ctx.beginPath();
+      ctx.moveTo(resistorX - resistorWidth / 2, resistorY);
+      
+      for (let i = 0; i < segments; i++) {
+        const direction = i % 2 === 0 ? -1 : 1;
+        ctx.lineTo(
+          resistorX - resistorWidth / 2 + i * segmentWidth,
+          resistorY + direction * zigzagDepth
+        );
+      }
+      
+      ctx.lineTo(resistorX + resistorWidth / 2, resistorY);
+      ctx.stroke();
+      
+      // Draw resistor label
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${resistance} Ω`, resistorX, resistorY - 10);
+      
+      // Draw wires
+      ctx.beginPath();
+      ctx.moveTo(batteryX + batteryWidth / 2, batteryY);
+      ctx.lineTo(resistorX - resistorWidth / 2, resistorY);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(resistorX + resistorWidth / 2, resistorY);
+      ctx.lineTo(capacitorX - capacitorWidth / 2, capacitorY);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(capacitorX + capacitorWidth / 2, capacitorY);
+      ctx.lineTo(batteryX - batteryWidth / 2, batteryY);
+      ctx.stroke();
+      
+      // Draw switch
+      const switchX = canvas.width * 0.3;
+      const switchY = canvas.height * 0.3;
+      const switchSize = 20;
+      
+      ctx.beginPath();
+      ctx.arc(switchX, switchY, switchSize / 2, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Draw switch state
+      if (isCharging) {
+        ctx.beginPath();
+        ctx.moveTo(switchX - switchSize / 2, switchY);
+        ctx.lineTo(switchX + switchSize / 2, switchY);
+        ctx.stroke();
+      } else if (isDischarging) {
+        ctx.beginPath();
+        ctx.moveTo(switchX - switchSize / 2, switchY);
+        ctx.lineTo(switchX, switchY - switchSize / 2);
+        ctx.lineTo(switchX + switchSize / 2, switchY);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(switchX - switchSize / 2, switchY);
+        ctx.lineTo(switchX, switchY + switchSize / 2);
+        ctx.lineTo(switchX + switchSize / 2, switchY);
+        ctx.stroke();
+      }
+      
+      // Draw current flow
+      if (isCharging || isDischarging) {
+        const currentStrength = Math.abs(current) / 10; // Scale for visualization
+        const arrowCount = Math.min(10, Math.max(3, Math.floor(currentStrength)));
+        const arrowSpacing = resistorWidth / (arrowCount + 1);
+        
+        for (let i = 1; i <= arrowCount; i++) {
+          const arrowX = resistorX - resistorWidth / 2 + i * arrowSpacing;
+          const arrowY = resistorY + (i % 2 === 0 ? 5 : -5);
+          
+          // Draw arrow
+          ctx.beginPath();
+          ctx.moveTo(arrowX - 5, arrowY);
+          ctx.lineTo(arrowX + 5, arrowY);
+          ctx.moveTo(arrowX + 5, arrowY);
+          ctx.lineTo(arrowX, arrowY - 5);
+          ctx.moveTo(arrowX + 5, arrowY);
+          ctx.lineTo(arrowX, arrowY + 5);
+          ctx.stroke();
+        }
+      }
+      
+      // Draw charge on capacitor plates
+      if (charge > 0) {
+        const chargeDensity = Math.min(1, charge / (capacitance * voltage));
+        const plateChargeHeight = capacitorHeight * chargeDensity;
+        
+        // Positive plate charge
+        ctx.fillStyle = 'rgba(231, 76, 60, 0.7)';
+        ctx.fillRect(
+          capacitorX - capacitorWidth / 2,
+          capacitorY - capacitorHeight / 2,
+          capacitorWidth / 10,
+          plateChargeHeight
+        );
+        
+        // Negative plate charge
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+        ctx.fillRect(
+          capacitorX + capacitorWidth / 2 - capacitorWidth / 10,
+          capacitorY + capacitorHeight / 2 - plateChargeHeight,
+          capacitorWidth / 10,
+          plateChargeHeight
+        );
+      }
+    }
+    
+    // Animation loop
+    function animate() {
+      const currentTime = (performance.now() - startTime) / 1000; // Convert to seconds
+      
+      if (isCharging || isDischarging) {
+        calculateValues(currentTime);
+        updateMeters();
+        drawCircuit();
+        
+        // Check if charging/discharging is complete
+        if (isCharging && charge >= capacitance * voltage * 0.99) {
+          isCharging = false;
+        } else if (isDischarging && charge <= 0.01) {
+          isDischarging = false;
+        }
+        
+        animationId = requestAnimationFrame(animate);
+      }
+    }
+    
+    // Initial draw
+    drawCircuit();
+  </script>
+</body>
+</html> 

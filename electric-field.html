@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electric Field Visualization</title>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2ecc71;
+      --accent-color: #e74c3c;
+      --dark-color: #2c3e50;
+      --light-color: #ecf0f1;
+      --text-color: #333;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f7fa;
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      color: #666;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    
+    .visualization-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    
+    .canvas-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      position: relative;
+      height: 500px;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .control-panel {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .control-panel h2 {
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .control-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .slider {
+      flex-grow: 1;
+      height: 8px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #ddd;
+      outline: none;
+      border-radius: 4px;
+    }
+    
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .slider-value {
+      min-width: 50px;
+      text-align: right;
+      font-weight: bold;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .btn {
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .primary-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .primary-btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .secondary-btn {
+      background-color: #95a5a6;
+      color: white;
+    }
+    
+    .secondary-btn:hover {
+      background-color: #7f8c8d;
+    }
+    
+    .info-panel {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    
+    .info-panel h2 {
+      margin-bottom: 1rem;
+      color: var(--dark-color);
+    }
+    
+    .info-content {
+      margin-bottom: 1.5rem;
+    }
+    
+    .formula-box {
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .formula {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    @media (max-width: 768px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    
+    <header>
+      <h1>Electric Field Visualization</h1>
+      <p class="subtitle">Explore electric fields around charged particles</p>
+    </header>
+    
+    <div class="visualization-container">
+      <div class="canvas-container">
+        <canvas id="electricFieldCanvas"></canvas>
+      </div>
+      
+      <div class="controls">
+        <div class="control-panel">
+          <h2>Controls</h2>
+          
+          <div class="control-group">
+            <label for="chargeSlider">Charge Strength (μC)</label>
+            <div class="slider-container">
+              <input type="range" id="chargeSlider" min="-10" max="10" value="5" class="slider">
+              <span id="chargeValue" class="slider-value">5 μC</span>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <label for="fieldLinesSlider">Number of Field Lines</label>
+            <div class="slider-container">
+              <input type="range" id="fieldLinesSlider" min="8" max="32" value="16" class="slider">
+              <span id="fieldLinesValue" class="slider-value">16</span>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <label for="fieldStrengthSlider">Field Strength Visualization</label>
+            <div class="slider-container">
+              <input type="range" id="fieldStrengthSlider" min="1" max="10" value="5" class="slider">
+              <span id="fieldStrengthValue" class="slider-value">5</span>
+            </div>
+          </div>
+          
+          <div class="button-group">
+            <button id="addChargeBtn" class="btn primary-btn">Add Charge</button>
+            <button id="clearBtn" class="btn secondary-btn">Clear All</button>
+          </div>
+        </div>
+        
+        <div class="info-panel">
+          <h2>About Electric Fields</h2>
+          <div class="info-content">
+            <p>An electric field is a region around a charged particle where other charged particles experience a force. Electric field lines show the direction and strength of the electric field.</p>
+            <p>Key points about electric fields:</p>
+            <ul>
+              <li>Field lines point away from positive charges and toward negative charges</li>
+              <li>The density of field lines indicates the strength of the field</li>
+              <li>Field lines never cross each other</li>
+              <li>The electric field is stronger where field lines are closer together</li>
+            </ul>
+          </div>
+          
+          <div class="formula-box">
+            <h3>Electric Field Formula</h3>
+            <div class="formula">E = k × |q| / r²</div>
+            <p>Where:</p>
+            <ul>
+              <li>E = Electric field strength (N/C)</li>
+              <li>k = Coulomb's constant (8.99 × 10⁹ N⋅m²/C²)</li>
+              <li>q = Charge (C)</li>
+              <li>r = Distance from the charge (m)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('electricFieldCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Electric field parameters
+    let charges = [];
+    let fieldLines = 16;
+    let fieldStrength = 5;
+    
+    // Slider elements
+    const chargeSlider = document.getElementById('chargeSlider');
+    const chargeValue = document.getElementById('chargeValue');
+    const fieldLinesSlider = document.getElementById('fieldLinesSlider');
+    const fieldLinesValue = document.getElementById('fieldLinesValue');
+    const fieldStrengthSlider = document.getElementById('fieldStrengthSlider');
+    const fieldStrengthValue = document.getElementById('fieldStrengthValue');
+    
+    // Button elements
+    const addChargeBtn = document.getElementById('addChargeBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    
+    // Update slider values
+    chargeSlider.addEventListener('input', () => {
+      chargeValue.textContent = `${chargeSlider.value} μC`;
+    });
+    
+    fieldLinesSlider.addEventListener('input', () => {
+      fieldLinesValue.textContent = fieldLinesSlider.value;
+      fieldLines = parseInt(fieldLinesSlider.value);
+    });
+    
+    fieldStrengthSlider.addEventListener('input', () => {
+      fieldStrengthValue.textContent = fieldStrengthSlider.value;
+      fieldStrength = parseInt(fieldStrengthSlider.value);
+    });
+    
+    // Add charge on canvas click
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const charge = {
+        x,
+        y,
+        q: parseFloat(chargeSlider.value),
+        radius: 15
+      };
+      
+      charges.push(charge);
+    });
+    
+    // Add charge button
+    addChargeBtn.addEventListener('click', () => {
+      const charge = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        q: parseFloat(chargeSlider.value),
+        radius: 15
+      };
+      
+      charges.push(charge);
+    });
+    
+    // Clear all charges
+    clearBtn.addEventListener('click', () => {
+      charges = [];
+    });
+    
+    // Calculate electric field at a point
+    function calculateField(x, y) {
+      let Ex = 0;
+      let Ey = 0;
+      
+      for (const charge of charges) {
+        const dx = x - charge.x;
+        const dy = y - charge.y;
+        const r = Math.sqrt(dx * dx + dy * dy);
+        
+        if (r < 1) continue; // Avoid division by zero
+        
+        const k = 8.99e9; // Coulomb's constant
+        const E = (k * charge.q * 1e-6) / (r * r); // Convert μC to C
+        
+        Ex += E * dx / r;
+        Ey += E * dy / r;
+      }
+      
+      return { Ex, Ey };
+    }
+    
+    // Draw electric field lines
+    function drawFieldLines() {
+      const step = 30; // Distance between field lines
+      const lineLength = 20; // Length of each line segment
+      
+      for (let i = 0; i < charges.length; i++) {
+        const charge = charges[i];
+        
+        // Calculate number of field lines based on charge magnitude
+        const numLines = Math.min(fieldLines, Math.abs(charge.q) * 2);
+        
+        for (let j = 0; j < numLines; j++) {
+          const angle = (j / numLines) * 2 * Math.PI;
+          let x = charge.x + Math.cos(angle) * charge.radius;
+          let y = charge.y + Math.sin(angle) * charge.radius;
+          
+          // Draw field line
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          
+          // Draw multiple segments to form a continuous line
+          for (let k = 0; k < 50; k++) {
+            const field = calculateField(x, y);
+            const magnitude = Math.sqrt(field.Ex * field.Ex + field.Ey * field.Ey);
+            
+            if (magnitude < 0.1) break; // Stop if field is too weak
+            
+            // Normalize and scale
+            const scale = lineLength / magnitude;
+            x += field.Ex * scale;
+            y += field.Ey * scale;
+            
+            // Check if out of bounds
+            if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) break;
+            
+            ctx.lineTo(x, y);
+          }
+          
+          // Set line color based on charge
+          if (charge.q > 0) {
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.7)'; // Red for positive
+          } else {
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)'; // Blue for negative
+          }
+          
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          
+          // Draw arrowhead
+          const field = calculateField(x, y);
+          const magnitude = Math.sqrt(field.Ex * field.Ex + field.Ey * field.Ey);
+          
+          if (magnitude > 0.1) {
+            const angle = Math.atan2(field.Ey, field.Ex);
+            const arrowSize = 8;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+              x - arrowSize * Math.cos(angle - Math.PI / 6),
+              y - arrowSize * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+              x - arrowSize * Math.cos(angle + Math.PI / 6),
+              y - arrowSize * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    
+    // Draw charges
+    function drawCharges() {
+      for (const charge of charges) {
+        ctx.beginPath();
+        ctx.arc(charge.x, charge.y, charge.radius, 0, 2 * Math.PI);
+        
+        if (charge.q > 0) {
+          ctx.fillStyle = 'rgba(231, 76, 60, 0.8)'; // Red for positive
+        } else {
+          ctx.fillStyle = 'rgba(52, 152, 219, 0.8)'; // Blue for negative
+        }
+        
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw + or - sign
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(charge.q > 0 ? '+' : '-', charge.x, charge.y);
+      }
+    }
+    
+    // Draw field strength visualization
+    function drawFieldStrength() {
+      const gridSize = 20;
+      
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        for (let y = 0; y < canvas.height; y += gridSize) {
+          const field = calculateField(x, y);
+          const magnitude = Math.sqrt(field.Ex * field.Ex + field.Ey * field.Ey);
+          
+          // Scale magnitude for visualization
+          const intensity = Math.min(1, magnitude / (fieldStrength * 1e10));
+          
+          ctx.fillStyle = `rgba(52, 152, 219, ${intensity * 0.3})`;
+          ctx.fillRect(x, y, gridSize, gridSize);
+        }
+      }
+    }
+    
+    // Animation loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw field strength background
+      drawFieldStrength();
+      
+      // Draw field lines
+      drawFieldLines();
+      
+      // Draw charges
+      drawCharges();
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Start animation
+    animate();
+  </script>
+</body>
+</html> 

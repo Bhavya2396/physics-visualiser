@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Series and Parallel Resistance</title>
+  <style>
+    :root {
+      --primary: #1a1a1a;
+      --secondary: #23272e;
+      --accent: #4a9eff;
+      --danger: #ff4444;
+      --success: #2ecc71;
+      --text: #ffffff;
+      --field: #a459d1;
+      --electron: #ffb347;
+      --resistor1: #4a9eff;
+      --resistor2: #ff4444;
+      --resistor3: #2ecc71;
+      --glow: 0 0 16px 2px var(--accent);
+    }
+    body {
+      background: var(--primary);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100vw;
+      max-width: 1200px;
+      padding: 40px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    .visualization-panel {
+      background: var(--secondary);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      padding: 32px 32px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    .canvas-container {
+      background: var(--primary);
+      border-radius: 12px;
+      box-shadow: 0 0 0 2px #23272e, 0 8px 32px rgba(74,158,255,0.08);
+      overflow: hidden;
+      width: 100%;
+      max-width: 700px;
+      aspect-ratio: 16/9;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #181c22;
+      border-radius: 12px;
+    }
+    .controls {
+      display: flex;
+      gap: 32px;
+      margin-top: 0;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .control-group {
+      background: var(--primary);
+      border-radius: 10px;
+      padding: 18px 20px 14px 20px;
+      min-width: 210px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+    }
+    .control-label {
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    .slider {
+      width: 100%;
+      margin: 0;
+      background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+      border-radius: 4px;
+      height: 8px;
+      outline: none;
+      -webkit-appearance: none;
+      box-shadow: 0 1px 4px rgba(74,158,255,0.15), 0 0 0 1px #222c3c;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: -6px;
+      box-shadow: var(--glow);
+    }
+    .slider::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 16px 4px var(--accent);
+    }
+    .slider::-webkit-slider-runnable-track {
+      background: linear-gradient(90deg, #222c3c 0%, #4a9eff 100%);
+      border-radius: 4px;
+      height: 8px;
+    }
+    .value-display {
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--accent);
+      text-align: right;
+      margin-top: 0.1rem;
+      background: none;
+      padding: 0;
+    }
+    .circuit-types {
+      display: flex;
+      gap: 18px;
+      margin: 0 0 0 0;
+      justify-content: center;
+    }
+    .circuit-type {
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: var(--text);
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+      transition: all 0.2s;
+      outline: none;
+      letter-spacing: 0.02em;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.6em;
+    }
+    .circuit-type.active {
+      background: var(--accent);
+      color: #fff;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 16px 2px var(--accent);
+    }
+    .circuit-type:hover:not(.active) {
+      background: #23272e;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .meter-display {
+      background: var(--primary);
+      padding: 18px 24px 10px 24px;
+      border-radius: 10px;
+      margin-top: 0;
+      box-shadow: 0 2px 8px rgba(74,158,255,0.07);
+      display: flex;
+      flex-direction: row;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    .meter {
+      text-align: center;
+      min-width: 110px;
+    }
+    .meter-label {
+      font-size: 13px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    .meter-value {
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+    @media (max-width: 900px) {
+      .canvas-container { width: 98vw; height: 48vw; min-width: 0; min-height: 0; max-width: 99vw; max-height: 60vw; }
+      canvas { width: 98vw; height: 48vw; }
+      .visualization-panel { padding: 12px 2vw 12px 2vw; }
+    }
+    @media (max-width: 700px) {
+      .canvas-container { width: 98vw; height: 60vw; }
+      canvas { width: 98vw; height: 60vw; }
+      .meter-display { flex-direction: column; gap: 10px; align-items: stretch; }
+      .controls { flex-direction: column; gap: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="visualization-panel">
+      <div class="canvas-container">
+        <canvas id="circuitCanvas" width="700" height="400"></canvas>
+      </div>
+      <button id="startPauseBtn" class="circuit-type" style="margin-top: 12px; min-width: 160px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 0.7em;">
+        <span id="startPauseIcon">▶️</span> <span id="startPauseLabel">Start Animation</span>
+      </button>
+      <div class="circuit-types">
+        <button id="seriesBtn" class="circuit-type active">Series</button>
+        <button id="parallelBtn" class="circuit-type">Parallel</button>
+        <button id="mixedBtn" class="circuit-type">Mixed</button>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Voltage (V)</div>
+            <input type="range" class="slider" id="voltageSlider" min="1" max="12" value="6" step="0.1">
+            <div class="value-display" id="voltageValue">6.0 V</div>
+          </div>
+        <div class="control-group">
+          <div class="control-label">R₁ (Ω)</div>
+            <input type="range" class="slider" id="r1Slider" min="100" max="2000" value="1000" step="100">
+            <div class="value-display" id="r1Value">1000 Ω</div>
+          </div>
+        <div class="control-group">
+          <div class="control-label">R₂ (Ω)</div>
+            <input type="range" class="slider" id="r2Slider" min="100" max="2000" value="1000" step="100">
+            <div class="value-display" id="r2Value">1000 Ω</div>
+          </div>
+        <div class="control-group">
+          <div class="control-label">R₃ (Ω)</div>
+            <input type="range" class="slider" id="r3Slider" min="100" max="2000" value="1000" step="100">
+            <div class="value-display" id="r3Value">1000 Ω</div>
+          </div>
+        </div>
+      <div class="meter-display">
+        <div class="meter">
+        <div class="meter-label">Total Resistance</div>
+          <div class="meter-value" id="totalResistanceValue">2000 Ω</div>
+        </div>
+        <div class="meter">
+        <div class="meter-label">Total Current</div>
+          <div class="meter-value" id="totalCurrentValue">3 mA</div>
+        </div>
+        <div class="meter">
+        <div class="meter-label">Total Power</div>
+          <div class="meter-value" id="totalPowerValue">18 mW</div>
+      </div>
+    </div>
+      </div>
+      </div>
+  <script>
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+    let isAnimating = false;
+    let animationFrame;
+    let currentTime = 0;
+    let animationSpeed = 0.5; // Control animation speed
+
+    // Circuit elements
+    const circuit = {
+        voltage: 6,
+        r1: 1000,
+        r2: 1000,
+        r3: 1000,
+        circuitType: 'series', // 'series', 'parallel', or 'mixed'
+        totalResistance: 0,
+        totalCurrent: 0,
+        totalPower: 0,
+        r1Current: 0,
+        r2Current: 0,
+        r3Current: 0,
+        r1Voltage: 0,
+        r2Voltage: 0,
+        r3Voltage: 0
+    };
+
+    // Colors for visual elements
+    const colors = {
+        wire: '#4a9eff',
+        wireGlow: 'rgba(74, 158, 255, 0.3)',
+        battery: '#ffb347',
+        batteryGlow: 'rgba(255, 179, 71, 0.3)',
+        resistor1: '#4a9eff',
+        resistor2: '#ff4444',
+        resistor3: '#2ecc71',
+        electron: '#4a9eff',
+        electronGlow: 'rgba(74, 158, 255, 0.6)',
+        background: '#181c22',
+        text: '#ffffff',
+        labelBg: 'rgba(35, 39, 46, 0.8)',
+        seriesColor: '#4a9eff',
+        parallelColor: '#ff4444',
+        mixedColor: '#a459d1'
+    };
+
+    // Resize canvas to fit container
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        // Set canvas size to match container
+        canvas.width = containerWidth;
+        canvas.height = containerHeight;
+        
+        // Calculate scaling factors
+        const scaleX = containerWidth / 700;  // 700 is our reference width
+        const scaleY = containerHeight / 400; // 400 is our reference height
+        
+        // Store scaling factors for use in drawing functions
+        canvas.scaleX = scaleX;
+        canvas.scaleY = scaleY;
+        
+        // Redraw the circuit
+        drawCircuit();
+    }
+
+    // Initialize event listeners
+    function initializeControls() {
+        // Voltage slider
+        const voltageSlider = document.getElementById('voltageSlider');
+        const voltageValue = document.getElementById('voltageValue');
+        voltageSlider.addEventListener('input', (e) => {
+            circuit.voltage = parseFloat(e.target.value);
+            voltageValue.textContent = `${circuit.voltage.toFixed(1)} V`;
+            updateCircuit();
+        });
+
+        // Resistor sliders
+        const r1Slider = document.getElementById('r1Slider');
+        const r1Value = document.getElementById('r1Value');
+        r1Slider.addEventListener('input', (e) => {
+            circuit.r1 = parseFloat(e.target.value);
+            r1Value.textContent = `${circuit.r1.toFixed(0)} Ω`;
+            updateCircuit();
+        });
+
+        const r2Slider = document.getElementById('r2Slider');
+        const r2Value = document.getElementById('r2Value');
+        r2Slider.addEventListener('input', (e) => {
+            circuit.r2 = parseFloat(e.target.value);
+            r2Value.textContent = `${circuit.r2.toFixed(0)} Ω`;
+            updateCircuit();
+        });
+
+        const r3Slider = document.getElementById('r3Slider');
+        const r3Value = document.getElementById('r3Value');
+        r3Slider.addEventListener('input', (e) => {
+            circuit.r3 = parseFloat(e.target.value);
+            r3Value.textContent = `${circuit.r3.toFixed(0)} Ω`;
+            updateCircuit();
+        });
+
+        // Circuit type buttons
+        document.getElementById('seriesBtn').addEventListener('click', () => {
+            setCircuitType('series');
+        });
+
+        document.getElementById('parallelBtn').addEventListener('click', () => {
+            setCircuitType('parallel');
+        });
+
+        document.getElementById('mixedBtn').addEventListener('click', () => {
+            setCircuitType('mixed');
+        });
+
+        // Play/Pause animation button
+        const startPauseBtn = document.getElementById('startPauseBtn');
+        const startPauseIcon = document.getElementById('startPauseIcon');
+        const startPauseLabel = document.getElementById('startPauseLabel');
+        startPauseBtn.addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            if (isAnimating) {
+                startPauseIcon.textContent = '⏸️';
+                startPauseLabel.textContent = 'Pause Animation';
+                animate();
+            } else {
+                startPauseIcon.textContent = '▶️';
+                startPauseLabel.textContent = 'Start Animation';
+                cancelAnimationFrame(animationFrame);
+                drawCircuit(); // Redraw to clear any moving electrons
+            }
+        });
+
+        // Window resize
+        window.addEventListener('resize', resizeCanvas);
+    }
+
+    // Set circuit type
+    function setCircuitType(type) {
+        circuit.circuitType = type;
+        
+        // Update active button
+        document.querySelectorAll('.circuit-type').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        document.getElementById(`${type}Btn`).classList.add('active');
+        
+        // Update circuit
+        updateCircuit();
+        
+        // Force redraw to show the new circuit type
+        drawCircuit();
+        if (isAnimating) {
+            cancelAnimationFrame(animationFrame);
+            animate();
+        }
+    }
+
+    // Calculate circuit values based on type
+    function calculateCircuit() {
+        // Calculate total resistance based on circuit type
+        if (circuit.circuitType === 'series') {
+            // Series: R_total = R1 + R2 + R3
+            circuit.totalResistance = circuit.r1 + circuit.r2 + circuit.r3;
+            
+            // Calculate total current
+            circuit.totalCurrent = circuit.voltage / circuit.totalResistance * 1000; // mA
+            
+            // In series, current is the same through all resistors
+            circuit.r1Current = circuit.totalCurrent;
+            circuit.r2Current = circuit.totalCurrent;
+            circuit.r3Current = circuit.totalCurrent;
+            
+            // Calculate voltage drops across each resistor
+            circuit.r1Voltage = circuit.r1Current * circuit.r1 / 1000; // V
+            circuit.r2Voltage = circuit.r2Current * circuit.r2 / 1000; // V
+            circuit.r3Voltage = circuit.r3Current * circuit.r3 / 1000; // V
+            
+        } else if (circuit.circuitType === 'parallel') {
+            // Parallel: 1/R_total = 1/R1 + 1/R2 + 1/R3
+            circuit.totalResistance = 1 / (1/circuit.r1 + 1/circuit.r2 + 1/circuit.r3);
+            
+            // Calculate total current
+            circuit.totalCurrent = circuit.voltage / circuit.totalResistance * 1000; // mA
+            
+            // In parallel, voltage is the same across all resistors
+            circuit.r1Voltage = circuit.voltage;
+            circuit.r2Voltage = circuit.voltage;
+            circuit.r3Voltage = circuit.voltage;
+            
+            // Calculate current through each resistor
+            circuit.r1Current = circuit.r1Voltage / circuit.r1 * 1000; // mA
+            circuit.r2Current = circuit.r2Voltage / circuit.r2 * 1000; // mA
+            circuit.r3Current = circuit.r3Voltage / circuit.r3 * 1000; // mA
+            
+        } else if (circuit.circuitType === 'mixed') {
+            // Mixed: R2 and R3 in parallel, and that combination in series with R1
+            const r23Parallel = 1 / (1/circuit.r2 + 1/circuit.r3);
+            circuit.totalResistance = circuit.r1 + r23Parallel;
+            
+            // Calculate total current
+            circuit.totalCurrent = circuit.voltage / circuit.totalResistance * 1000; // mA
+            
+            // Calculate voltage drops
+            circuit.r1Voltage = circuit.totalCurrent * circuit.r1 / 1000; // V
+            const v23 = circuit.voltage - circuit.r1Voltage; // Voltage across parallel section
+            
+            circuit.r2Voltage = v23;
+            circuit.r3Voltage = v23;
+            
+            // Calculate currents
+            circuit.r1Current = circuit.totalCurrent;
+            circuit.r2Current = circuit.r2Voltage / circuit.r2 * 1000; // mA
+            circuit.r3Current = circuit.r3Voltage / circuit.r3 * 1000; // mA
+        }
+        
+        // Calculate total power
+        circuit.totalPower = circuit.voltage * circuit.totalCurrent; // mW
+    }
+
+    // Update circuit values and UI
+    function updateCircuit() {
+        calculateCircuit();
+        
+        // Update meter display
+        document.getElementById('totalResistanceValue').textContent = `${circuit.totalResistance.toFixed(1)} Ω`;
+        document.getElementById('totalCurrentValue').textContent = `${circuit.totalCurrent.toFixed(2)} mA`;
+        document.getElementById('totalPowerValue').textContent = `${circuit.totalPower.toFixed(2)} mW`;
+        
+        // Redraw circuit
+        drawCircuit();
+        if (isAnimating) {
+            cancelAnimationFrame(animationFrame);
+            animate();
+        }
+    }
+
+    // Animation loop
+    function animate() {
+        if (!isAnimating) return;
+        
+        currentTime += 0.016; // Approximately 60 FPS
+        drawCircuit();
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    // Draw resistor function
+    function drawResistor(x, y, width, height, color, resistance, current, voltage) {
+        // Draw resistor glow
+        const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, width);
+        glowGradient.addColorStop(0, color + '40');
+        glowGradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = glowGradient;
+        ctx.fillRect(x - width, y - height, width * 2, height * 2);
+
+        // Draw resistor body with gradient
+        const resistorGradient = ctx.createLinearGradient(x - width/2, y - height/2, x + width/2, y + height/2);
+        resistorGradient.addColorStop(0, color + '80');
+        resistorGradient.addColorStop(1, color);
+        ctx.fillStyle = resistorGradient;
+        ctx.fillRect(x - width/2, y - height/2, width, height);
+        
+        // Draw resistor border with glow
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - width/2, y - height/2, width, height);
+        
+        // Draw zigzag pattern with glow
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const zigzagWidth = width * 0.8;
+        const zigzagStart = x - zigzagWidth/2;
+        const zigzagEnd = x + zigzagWidth/2;
+        const zigzagHeight = height * 0.3;
+        const segments = 6;
+        const segmentWidth = zigzagWidth / segments;
+        
+        ctx.moveTo(zigzagStart, y);
+        for (let i = 0; i < segments; i++) {
+            if (i % 2 === 0) {
+                ctx.lineTo(zigzagStart + (i + 1) * segmentWidth, y - zigzagHeight);
+            } else {
+                ctx.lineTo(zigzagStart + (i + 1) * segmentWidth, y + zigzagHeight);
+            }
+        }
+        ctx.stroke();
+        
+        // Draw labels with modern styling
+        const labelBg = ctx.createLinearGradient(x - 40, y - height/2 - 50, x + 40, y - height/2 - 30);
+        labelBg.addColorStop(0, 'rgba(35, 39, 46, 0.9)');
+        labelBg.addColorStop(1, 'rgba(35, 39, 46, 0.7)');
+        
+        // Voltage label
+        ctx.fillStyle = labelBg;
+        ctx.fillRect(x - 40, y - height/2 - 50, 80, 20);
+        ctx.strokeStyle = '#ff4444';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 40, y - height/2 - 50, 80, 20);
+        ctx.fillStyle = '#ff4444';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${voltage.toFixed(2)} V`, x, y - height/2 - 37);
+        
+        // Current label
+        ctx.fillStyle = labelBg;
+        ctx.fillRect(x - 40, y - height/2 - 25, 80, 20);
+        ctx.strokeStyle = colors.wire;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 40, y - height/2 - 25, 80, 20);
+        ctx.fillStyle = colors.wire;
+        ctx.fillText(`${current.toFixed(2)} mA`, x, y - height/2 - 12);
+        
+        // Resistance label
+        ctx.fillStyle = labelBg;
+        ctx.fillRect(x - 40, y + height/2 + 5, 80, 20);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 40, y + height/2 + 5, 80, 20);
+        ctx.fillStyle = color;
+        ctx.fillText(`${resistance.toFixed(0)} Ω`, x, y + height/2 + 18);
+    }
+
+    // Draw circuit
+    function drawCircuit() {
+        // Clear with gradient background
+        const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        bgGradient.addColorStop(0, '#181c22');
+        bgGradient.addColorStop(1, '#23272e');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add proportional padding
+        const padX = canvas.width * 0.06;
+        const padY = canvas.height * 0.08;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const circuitWidth = canvas.width - 2 * padX;
+        const circuitHeight = canvas.height - 2 * padY;
+        
+        // Draw circuit background with proper scaling
+        ctx.fillStyle = colors.background;
+        ctx.fillRect(centerX - circuitWidth/2, centerY - circuitHeight/2, circuitWidth, circuitHeight);
+        ctx.strokeStyle = '#23272e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - circuitWidth/2, centerY - circuitHeight/2, circuitWidth, circuitHeight);
+        
+        // Draw circuit title with proper scaling
+        let circuitColor;
+        if (circuit.circuitType === 'series') {
+            circuitColor = colors.seriesColor;
+        } else if (circuit.circuitType === 'parallel') {
+            circuitColor = colors.parallelColor;
+        } else {
+            circuitColor = colors.mixedColor;
+        }
+        
+        // Scale font size based on container size
+        const fontSize = Math.max(12, Math.min(16, canvas.width / 50));
+        ctx.font = `bold ${fontSize}px Arial`;
+
+        // Draw title background
+        const titleWidth = circuitWidth * 0.28;
+        const titleHeight = circuitHeight * 0.08;
+        ctx.fillStyle = colors.labelBg;
+        ctx.fillRect(centerX - titleWidth/2, centerY - circuitHeight/2 - titleHeight - padY*0.2, titleWidth, titleHeight);
+        ctx.strokeStyle = circuitColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - titleWidth/2, centerY - circuitHeight/2 - titleHeight - padY*0.2, titleWidth, titleHeight);
+        
+        ctx.fillStyle = circuitColor;
+        ctx.textAlign = 'center';
+        ctx.fillText(circuit.circuitType.toUpperCase() + ' CIRCUIT', centerX, centerY - circuitHeight/2 - titleHeight/2 - padY*0.2);
+        
+        // Scale battery dimensions
+        const batteryWidth = circuitWidth * 0.09;
+        const batteryHeight = circuitHeight * 0.13;
+        const batteryX = centerX - circuitWidth/2 + batteryWidth*1.2;
+        const batteryY = centerY;
+        
+        // Draw battery with proper scaling
+        drawBattery(batteryX, batteryY, batteryWidth, batteryHeight);
+        
+        // Scale resistor dimensions
+        const resistorWidth = circuitWidth * 0.13;
+        const resistorHeight = circuitHeight * 0.09;
+        
+        // Draw different circuit configurations with scaled dimensions
+        if (circuit.circuitType === 'series') {
+            drawSeriesCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY);
+        } else if (circuit.circuitType === 'parallel') {
+            drawParallelCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY);
+        } else if (circuit.circuitType === 'mixed') {
+            drawMixedCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY);
+        }
+        
+        // Draw current flow animation
+        if (isAnimating) {
+            drawCurrentFlow();
+        }
+    }
+    
+    // Draw series circuit
+    function drawSeriesCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY) {
+        // Calculate max spacing so all resistors fit
+        const nResistors = 3;
+        const totalResistorWidth = nResistors * resistorWidth;
+        const availableSpace = circuitWidth - batteryWidth*1.2 - totalResistorWidth - batteryWidth*0.7;
+        const spacing = Math.max(availableSpace / (nResistors + 1), 10);
+        
+        // Resistor positions
+        const r1X = batteryX + batteryWidth/2 + spacing + resistorWidth/2;
+        const r1Y = batteryY;
+        const r2X = r1X + resistorWidth/2 + spacing + resistorWidth/2;
+        const r2Y = batteryY;
+        const r3X = r2X + resistorWidth/2 + spacing + resistorWidth/2;
+        const r3Y = batteryY;
+        
+        // Draw connecting wires
+        ctx.strokeStyle = colors.wire;
+        ctx.lineWidth = 3;
+        
+        // Wire from battery to R1
+        ctx.beginPath();
+        ctx.moveTo(batteryX + batteryWidth/2, batteryY);
+        ctx.lineTo(r1X - resistorWidth/2, batteryY);
+        ctx.stroke();
+        
+        // Wire from R1 to R2
+        ctx.beginPath();
+        ctx.moveTo(r1X + resistorWidth/2, r1Y);
+        ctx.lineTo(r2X - resistorWidth/2, r2Y);
+        ctx.stroke();
+        
+        // Wire from R2 to R3
+        ctx.beginPath();
+        ctx.moveTo(r2X + resistorWidth/2, r2Y);
+        ctx.lineTo(r3X - resistorWidth/2, r3Y);
+        ctx.stroke();
+        
+        // Wire from R3 to complete the circuit (down, left, up)
+        const bottomY = batteryY + circuitHeight/2 - padY*0.5;
+        ctx.beginPath();
+        ctx.moveTo(r3X + resistorWidth/2, r3Y);
+        ctx.lineTo(r3X + resistorWidth/2 + spacing*0.5, r3Y);
+        ctx.lineTo(r3X + resistorWidth/2 + spacing*0.5, bottomY);
+        ctx.lineTo(batteryX - batteryWidth/2 - spacing*0.5, bottomY);
+        ctx.lineTo(batteryX - batteryWidth/2 - spacing*0.5, batteryY);
+        ctx.stroke();
+        
+        // Draw connection nodes
+        ctx.fillStyle = colors.wire;
+        [
+            [batteryX + batteryWidth/2, batteryY],
+            [r1X - resistorWidth/2, r1Y],
+            [r1X + resistorWidth/2, r1Y],
+            [r2X - resistorWidth/2, r2Y],
+            [r2X + resistorWidth/2, r2Y],
+            [r3X - resistorWidth/2, r3Y],
+            [r3X + resistorWidth/2, r3Y]
+        ].forEach(([x, y]) => {
+        ctx.beginPath();
+            ctx.arc(x, y, circuitWidth*0.012, 0, Math.PI * 2);
+        ctx.fill();
+        });
+        
+        // Draw resistors
+        drawResistor(r1X, r1Y, resistorWidth, resistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
+        drawResistor(r2X, r2Y, resistorWidth, resistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
+        drawResistor(r3X, r3Y, resistorWidth, resistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
+        
+        // Store wire path as a sequence of points for full loop
+        const pathPoints = [
+            // Top wire: battery to R1, R2, R3
+            { x: batteryX + batteryWidth/2, y: batteryY },
+            { x: r1X - resistorWidth/2, y: batteryY },
+            { x: r1X + resistorWidth/2, y: batteryY },
+            { x: r2X - resistorWidth/2, y: batteryY },
+            { x: r2X + resistorWidth/2, y: batteryY },
+            { x: r3X - resistorWidth/2, y: batteryY },
+            { x: r3X + resistorWidth/2, y: batteryY },
+            // Down
+            { x: r3X + resistorWidth/2 + spacing*0.5, y: batteryY },
+            { x: r3X + resistorWidth/2 + spacing*0.5, y: bottomY },
+            // Left
+            { x: batteryX - batteryWidth/2 - spacing*0.5, y: bottomY },
+            // Up
+            { x: batteryX - batteryWidth/2 - spacing*0.5, y: batteryY },
+            // Close loop
+            { x: batteryX + batteryWidth/2, y: batteryY }
+        ];
+        circuit.seriesPathPoints = pathPoints;
+        circuit.seriesPathLength = getPathLength(pathPoints);
+        circuit.currentPathPoints = pathPoints;
+        circuit.currentPathLength = getPathLength(pathPoints);
+    }
+    
+    // Draw parallel circuit
+    function drawParallelCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY) {
+        // Rails
+        const railLength = circuitWidth * 0.65;
+        const verticalSpread = circuitHeight * 0.7;
+        const topRailY = batteryY - verticalSpread/2;
+        const bottomRailY = batteryY + verticalSpread/2;
+        const railX = batteryX + batteryWidth/2 + circuitWidth*0.08;
+        
+        // Draw top rail
+        ctx.strokeStyle = colors.wire;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(batteryX + batteryWidth/2, batteryY);
+        ctx.lineTo(railX, batteryY);
+        ctx.lineTo(railX, topRailY);
+        ctx.lineTo(railX + railLength, topRailY);
+        ctx.stroke();
+        
+        // Draw bottom rail
+        ctx.beginPath();
+        ctx.moveTo(batteryX - batteryWidth/2, batteryY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, batteryY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, bottomRailY);
+        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.stroke();
+        
+        // Connect top and bottom rails
+        ctx.beginPath();
+        ctx.moveTo(railX + railLength, topRailY);
+        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.stroke();
+        
+        // Resistor positions (3 parallel branches)
+        const r1X = railX + railLength/4;
+        const r1Y = (topRailY + bottomRailY)/2;
+        const r2X = railX + railLength/2;
+        const r2Y = (topRailY + bottomRailY)/2;
+        const r3X = railX + 3*railLength/4;
+        const r3Y = (topRailY + bottomRailY)/2;
+        
+        // Vertical wires to resistors
+        [[r1X, topRailY, r1X, r1Y - resistorHeight/2], [r1X, r1Y + resistorHeight/2, r1X, bottomRailY],
+         [r2X, topRailY, r2X, r2Y - resistorHeight/2], [r2X, r2Y + resistorHeight/2, r2X, bottomRailY],
+         [r3X, topRailY, r3X, r3Y - resistorHeight/2], [r3X, r3Y + resistorHeight/2, r3X, bottomRailY]]
+        .forEach(([x1, y1, x2, y2]) => {
+        ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        ctx.stroke();
+        });
+        
+        // Draw connection nodes
+        ctx.fillStyle = colors.wire;
+        [
+            [r1X, topRailY], [r2X, topRailY], [r3X, topRailY],
+            [r1X, bottomRailY], [r2X, bottomRailY], [r3X, bottomRailY]
+        ].forEach(([x, y]) => {
+        ctx.beginPath();
+            ctx.arc(x, y, circuitWidth*0.012, 0, Math.PI * 2);
+        ctx.fill();
+        });
+        
+        // Draw resistors
+        drawResistor(r1X, r1Y, resistorWidth, resistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
+        drawResistor(r2X, r2Y, resistorWidth, resistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
+        drawResistor(r3X, r3Y, resistorWidth, resistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
+        
+        // Store resistor positions for animation
+        circuit.resistors = [
+            { x: r1X, y: r1Y, width: resistorWidth, height: resistorHeight, type: 'r1' },
+            { x: r2X, y: r2Y, width: resistorWidth, height: resistorHeight, type: 'r2' },
+            { x: r3X, y: r3Y, width: resistorWidth, height: resistorHeight, type: 'r3' }
+        ];
+        
+        // Store wire paths for animation
+        const electronCount = Math.max(5, Math.min(20, Math.floor(circuit.totalCurrent / 2)));
+        const pathPoints = [
+            // Battery to top rail
+            { x: batteryX + batteryWidth/2, y: batteryY },
+            { x: railX, y: batteryY },
+            { x: railX, y: topRailY },
+            { x: railX + railLength, y: topRailY },
+            // r1 branch
+            { x: r1X, y: topRailY },
+            { x: r1X, y: bottomRailY },
+            { x: railX + railLength, y: bottomRailY },
+            // r2 branch
+            { x: r2X, y: bottomRailY },
+            { x: r2X, y: topRailY },
+            // r3 branch
+            { x: r3X, y: topRailY },
+            { x: r3X, y: bottomRailY },
+            // bottom rail to battery
+            { x: railX + railLength, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY },
+            { x: batteryX + batteryWidth/2, y: batteryY }
+        ];
+        circuit.currentPathPoints = pathPoints;
+        circuit.currentPathLength = getPathLength(pathPoints);
+
+        // Define split and recombine points
+        const splitPoint = { x: railX, y: topRailY };
+        const recombinePoint = { x: railX + railLength, y: bottomRailY };
+        // Branch paths
+        circuit.parallelBranchPaths = [
+            // R1 branch
+            [
+                { x: splitPoint.x, y: splitPoint.y },
+                { x: r1X, y: topRailY },
+                { x: r1X, y: bottomRailY },
+                { x: recombinePoint.x, y: recombinePoint.y }
+            ],
+            // R2 branch
+            [
+                { x: splitPoint.x, y: splitPoint.y },
+                { x: r2X, y: topRailY },
+                { x: r2X, y: bottomRailY },
+                { x: recombinePoint.x, y: recombinePoint.y }
+            ],
+            // R3 branch
+            [
+                { x: splitPoint.x, y: splitPoint.y },
+                { x: r3X, y: topRailY },
+                { x: r3X, y: bottomRailY },
+                { x: recombinePoint.x, y: recombinePoint.y }
+            ]
+        ];
+        circuit.parallelBranchCurrents = [circuit.r1Current, circuit.r2Current, circuit.r3Current];
+        circuit.parallelSplitStart = { x: batteryX + batteryWidth/2, y: batteryY };
+        circuit.parallelSplitMid = { x: railX, y: batteryY };
+        circuit.parallelSplitPoint = splitPoint;
+        circuit.parallelRecombinePoint = recombinePoint;
+        circuit.parallelReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY };
+        circuit.parallelReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY };
+        circuit.parallelReturnStart = { x: railX + railLength, y: bottomRailY };
+    }
+    
+    // Draw mixed circuit (R1 in series with R2 and R3 in parallel)
+    function drawMixedCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY) {
+        // Series part
+        const spacing = (circuitWidth * 0.18);
+        const r1X = batteryX + batteryWidth/2 + spacing + resistorWidth/2;
+        const r1Y = batteryY;
+        
+        // Draw R1 (in series)
+        drawResistor(r1X, r1Y, resistorWidth, resistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
+        
+        // Parallel section
+        const railLength = circuitWidth * 0.32;
+        const verticalSpread = circuitHeight * 0.5;
+        const topRailY = batteryY - verticalSpread/2;
+        const bottomRailY = batteryY + verticalSpread/2;
+        const railX = r1X + resistorWidth/2 + spacing;
+        
+        // Draw rails
+        ctx.strokeStyle = colors.wire;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(batteryX + batteryWidth/2, batteryY);
+        ctx.lineTo(r1X - resistorWidth/2, r1Y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(r1X + resistorWidth/2, r1Y);
+        ctx.lineTo(railX, r1Y);
+        ctx.lineTo(railX, topRailY);
+        ctx.lineTo(railX + railLength, topRailY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(railX, bottomRailY);
+        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(railX + railLength, topRailY);
+        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(railX, bottomRailY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, bottomRailY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, batteryY);
+        ctx.lineTo(batteryX - batteryWidth/2, batteryY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(railX, bottomRailY);
+        ctx.lineTo(railX, topRailY);
+        ctx.stroke();
+        
+        // Resistor positions (2 parallel branches)
+        const r2X = railX + railLength/3;
+        const r2Y = (topRailY + bottomRailY)/2;
+        const r3X = railX + 2*railLength/3;
+        const r3Y = (topRailY + bottomRailY)/2;
+        
+        // Vertical wires to resistors
+        [[r2X, topRailY, r2X, r2Y - resistorHeight/2], [r2X, r2Y + resistorHeight/2, r2X, bottomRailY],
+         [r3X, topRailY, r3X, r3Y - resistorHeight/2], [r3X, r3Y + resistorHeight/2, r3X, bottomRailY]]
+        .forEach(([x1, y1, x2, y2]) => {
+        ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        ctx.stroke();
+        });
+        
+        // Draw connection nodes
+        ctx.fillStyle = colors.wire;
+        [
+            [batteryX + batteryWidth/2, batteryY],
+            [r1X - resistorWidth/2, r1Y],
+            [r1X + resistorWidth/2, r1Y],
+            [r2X, topRailY], [r3X, topRailY], [r2X, bottomRailY], [r3X, bottomRailY],
+            [railX, topRailY], [railX, bottomRailY]
+        ].forEach(([x, y]) => {
+        ctx.beginPath();
+            ctx.arc(x, y, circuitWidth*0.012, 0, Math.PI * 2);
+        ctx.fill();
+        });
+        
+        // Draw resistors in parallel
+        drawResistor(r2X, r2Y, resistorWidth, resistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
+        drawResistor(r3X, r3Y, resistorWidth, resistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
+        
+        // Store resistor positions for animation
+        circuit.resistors = [
+            { x: r1X, y: r1Y, width: resistorWidth, height: resistorHeight, type: 'r1' },
+            { x: r2X, y: r2Y, width: resistorWidth, height: resistorHeight, type: 'r2' },
+            { x: r3X, y: r3Y, width: resistorWidth, height: resistorHeight, type: 'r3' }
+        ];
+        
+        // Store wire paths for animation
+        const electronCount = Math.max(5, Math.min(20, Math.floor(circuit.totalCurrent / 2)));
+        const pathPoints = [
+            // Battery to R1
+            { x: batteryX + batteryWidth/2, y: batteryY },
+            { x: r1X - resistorWidth/2, y: batteryY },
+            { x: r1X + resistorWidth/2, y: batteryY },
+            { x: railX, y: batteryY },
+            { x: railX, y: topRailY },
+            { x: railX + railLength, y: topRailY },
+            // r2 branch
+            { x: r2X, y: topRailY },
+            { x: r2X, y: bottomRailY },
+            { x: railX + railLength, y: bottomRailY },
+            // r3 branch
+            { x: r3X, y: bottomRailY },
+            { x: r3X, y: topRailY },
+            // bottom rail to battery
+            { x: railX + railLength, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY },
+            { x: batteryX + batteryWidth/2, y: batteryY }
+        ];
+        circuit.currentPathPoints = pathPoints;
+        circuit.currentPathLength = getPathLength(pathPoints);
+
+        // Define split and recombine points
+        const splitPoint = { x: railX, y: topRailY };
+        const recombinePoint = { x: railX + railLength, y: bottomRailY };
+        // Branch paths
+        circuit.mixedBranchPaths = [
+            // R2 branch
+            [
+                { x: splitPoint.x, y: splitPoint.y },
+                { x: r2X, y: topRailY },
+                { x: r2X, y: bottomRailY },
+                { x: recombinePoint.x, y: recombinePoint.y }
+            ],
+            // R3 branch
+            [
+                { x: splitPoint.x, y: splitPoint.y },
+                { x: r3X, y: topRailY },
+                { x: r3X, y: bottomRailY },
+                { x: recombinePoint.x, y: recombinePoint.y }
+            ]
+        ];
+        circuit.mixedBranchCurrents = [circuit.r2Current, circuit.r3Current];
+        // Path up to split
+        circuit.mixedPreSplit = [
+            { x: batteryX + batteryWidth/2, y: batteryY },
+            { x: r1X - resistorWidth/2, y: batteryY },
+            { x: r1X + resistorWidth/2, y: batteryY },
+            { x: railX, y: batteryY },
+            { x: railX, y: topRailY }
+        ];
+        circuit.mixedRecombinePoint = recombinePoint;
+        circuit.mixedReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY };
+        circuit.mixedReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY };
+        circuit.mixedReturnStart = { x: railX + railLength, y: bottomRailY };
+    }
+    
+    // Draw current flow animation
+    function drawCurrentFlow() {
+        // Series: unchanged
+        if (circuit.circuitType === 'series' && circuit.currentPathPoints && circuit.currentPathLength) {
+            const electronCount = Math.max(5, Math.min(20, Math.floor(circuit.totalCurrent / 2)));
+            for (let i = 0; i < electronCount; i++) {
+                const offset = ((currentTime * animationSpeed) + i / electronCount) % 1;
+                const pt = getPointAtLength(circuit.currentPathPoints, circuit.currentPathLength, offset);
+                drawElectron(pt.x, pt.y, electronCount);
+            }
+            return;
+        }
+        // Parallel: split electrons into branches
+        if (circuit.circuitType === 'parallel' && circuit.parallelBranchPaths && circuit.parallelBranchCurrents) {
+            // Pre-split: from battery to split point
+            const totalCurrent = circuit.parallelBranchCurrents.reduce((a, b) => a + b, 0);
+            const preSplitPath = [circuit.parallelSplitStart, circuit.parallelSplitMid, circuit.parallelSplitPoint];
+            const preSplitLength = getPathLength(preSplitPath);
+            const preSplitElectrons = Math.max(5, Math.min(20, Math.floor(totalCurrent / 2)));
+            for (let i = 0; i < preSplitElectrons; i++) {
+                const offset = ((currentTime * animationSpeed) + i / preSplitElectrons) % 1;
+                const pt = getPointAtLength(preSplitPath, preSplitLength, offset);
+                drawElectron(pt.x, pt.y, preSplitElectrons);
+            }
+            // Branches
+            for (let b = 0; b < 3; b++) {
+                const branchPath = circuit.parallelBranchPaths[b];
+                const branchLength = getPathLength(branchPath);
+                const branchCurrent = circuit.parallelBranchCurrents[b];
+                const branchElectrons = Math.max(2, Math.floor(branchCurrent / 2));
+                for (let i = 0; i < branchElectrons; i++) {
+                    const offset = ((currentTime * animationSpeed) + i / branchElectrons) % 1;
+                    const pt = getPointAtLength(branchPath, branchLength, offset);
+                    drawElectron(pt.x, pt.y, branchElectrons);
+                }
+            }
+            // After recombine: from recombine point to battery
+            const postPath = [circuit.parallelRecombinePoint, circuit.parallelReturnEnd, circuit.parallelReturnUp, circuit.parallelSplitStart];
+            const postLength = getPathLength(postPath);
+            for (let i = 0; i < preSplitElectrons; i++) {
+                const offset = ((currentTime * animationSpeed) + i / preSplitElectrons) % 1;
+                const pt = getPointAtLength(postPath, postLength, offset);
+                drawElectron(pt.x, pt.y, preSplitElectrons);
+            }
+            return;
+        }
+        // Mixed: split electrons into two branches after R1
+        if (circuit.circuitType === 'mixed' && circuit.mixedBranchPaths && circuit.mixedBranchCurrents) {
+            // Pre-split: battery to split point
+            const totalCurrent = circuit.mixedBranchCurrents.reduce((a, b) => a + b, 0);
+            const preSplitPath = circuit.mixedPreSplit;
+            const preSplitLength = getPathLength(preSplitPath);
+            const preSplitElectrons = Math.max(5, Math.min(20, Math.floor(totalCurrent / 2)));
+            for (let i = 0; i < preSplitElectrons; i++) {
+                const offset = ((currentTime * animationSpeed) + i / preSplitElectrons) % 1;
+                const pt = getPointAtLength(preSplitPath, preSplitLength, offset);
+                drawElectron(pt.x, pt.y, preSplitElectrons);
+            }
+            // Branches
+            for (let b = 0; b < 2; b++) {
+                const branchPath = circuit.mixedBranchPaths[b];
+                const branchLength = getPathLength(branchPath);
+                const branchCurrent = circuit.mixedBranchCurrents[b];
+                const branchElectrons = Math.max(2, Math.floor(branchCurrent / 2));
+                for (let i = 0; i < branchElectrons; i++) {
+                    const offset = ((currentTime * animationSpeed) + i / branchElectrons) % 1;
+                    const pt = getPointAtLength(branchPath, branchLength, offset);
+                    drawElectron(pt.x, pt.y, branchElectrons);
+                }
+            }
+            // After recombine: from recombine point to battery
+            const postPath = [circuit.mixedRecombinePoint, circuit.mixedReturnEnd, circuit.mixedReturnUp, circuit.mixedPreSplit[0]];
+            const postLength = getPathLength(postPath);
+            for (let i = 0; i < preSplitElectrons; i++) {
+                const offset = ((currentTime * animationSpeed) + i / preSplitElectrons) % 1;
+                const pt = getPointAtLength(postPath, postLength, offset);
+                drawElectron(pt.x, pt.y, preSplitElectrons);
+            }
+            return;
+        }
+        // Fallback: nothing
+    }
+
+    // Add a new function to draw the battery
+    function drawBattery(x, y, width, height) {
+        // Battery body with gradient
+        const batteryGradient = ctx.createLinearGradient(x - width/2, y - height/2, x + width/2, y + height/2);
+        batteryGradient.addColorStop(0, colors.battery + '80');
+        batteryGradient.addColorStop(1, colors.battery);
+        ctx.fillStyle = batteryGradient;
+        ctx.fillRect(x - width/2, y - height/2, width, height);
+        
+        // Battery border with glow
+        ctx.strokeStyle = colors.battery;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - width/2, y - height/2, width, height);
+        
+        // Battery terminals
+                ctx.beginPath();
+        ctx.moveTo(x + width/2, y);
+        ctx.lineTo(x + width/2 + 20 * (canvas.width / 700), y);
+        ctx.stroke();
+                
+                ctx.beginPath();
+        ctx.moveTo(x - width/2, y);
+        ctx.lineTo(x - width/2 - 20 * (canvas.width / 700), y);
+        ctx.stroke();
+        
+        // Battery symbols
+        const fontSize = Math.max(12, Math.min(18, canvas.width / 50));
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('+', x + width/2 - 15 * (canvas.width / 700), y + 5);
+        ctx.fillText('-', x - width/2 + 15 * (canvas.width / 700), y + 5);
+        
+        // Battery voltage label
+        const labelBg = ctx.createLinearGradient(x - 40 * (canvas.width / 700), y - height/2 - 30 * (canvas.height / 400),
+                                               x + 40 * (canvas.width / 700), y - height/2 - 10 * (canvas.height / 400));
+        labelBg.addColorStop(0, 'rgba(35, 39, 46, 0.9)');
+        labelBg.addColorStop(1, 'rgba(35, 39, 46, 0.7)');
+        
+        ctx.fillStyle = labelBg;
+        ctx.fillRect(x - 40 * (canvas.width / 700), y - height/2 - 30 * (canvas.height / 400),
+                    80 * (canvas.width / 700), 25 * (canvas.height / 400));
+        ctx.strokeStyle = colors.battery;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 40 * (canvas.width / 700), y - height/2 - 30 * (canvas.height / 400),
+                      80 * (canvas.width / 700), 25 * (canvas.height / 400));
+        
+        ctx.fillStyle = colors.battery;
+        ctx.font = `${Math.max(12, Math.min(14, canvas.width / 60))}px Arial`;
+        ctx.fillText(`${circuit.voltage.toFixed(1)} V`, x, y - height/2 - 14 * (canvas.height / 400));
+    }
+
+    // Initialize
+    window.addEventListener('load', function() {
+        resizeCanvas();
+        initializeControls();
+        updateCircuit();
+    });
+
+    function getPathLength(points) {
+        let len = 0;
+        for (let i = 1; i < points.length; i++) {
+            const dx = points[i].x - points[i-1].x;
+            const dy = points[i].y - points[i-1].y;
+            len += Math.sqrt(dx*dx + dy*dy);
+        }
+        return len;
+    }
+    function getPointAtLength(points, totalLength, t) {
+        // t in [0,1], returns {x, y} at t*totalLength along the path
+        let target = t * totalLength;
+        let len = 0;
+        for (let i = 1; i < points.length; i++) {
+            const segLen = Math.sqrt(
+                Math.pow(points[i].x - points[i-1].x, 2) +
+                Math.pow(points[i].y - points[i-1].y, 2)
+            );
+            if (len + segLen >= target) {
+                const segT = (target - len) / segLen;
+                return {
+                    x: points[i-1].x + (points[i].x - points[i-1].x) * segT,
+                    y: points[i-1].y + (points[i].y - points[i-1].y) * segT
+                };
+            }
+            len += segLen;
+        }
+        // If t==1, return last point
+        return points[points.length-1];
+    }
+
+    // Helper to draw an electron
+    function drawElectron(x, y, electronCount) {
+        const electronSize = Math.max(3, Math.min(4, canvas.width / 200)) + (electronCount > 10 ? 1 : 0);
+        const glowSize = electronSize * 3;
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
+        gradient.addColorStop(0, colors.electronGlow);
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, glowSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = colors.electron;
+        ctx.beginPath();
+        ctx.arc(x, y, electronSize, 0, Math.PI * 2);
+        ctx.fill();
+    }
+  </script>
+</body>
+</html> 

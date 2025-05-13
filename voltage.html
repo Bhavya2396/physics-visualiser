@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voltage - Interactive Visualization</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --background-color: #f5f6fa;
+      --text-color: #2c3e50;
+      --card-bg: #ffffff;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(52, 152, 219, 0.1), transparent),
+                  radial-gradient(circle at bottom right, rgba(231, 76, 60, 0.1), transparent);
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 4fr 1fr;
+      overflow: hidden;
+    }
+    
+    .visualization-container {
+      padding: 1.5rem;
+      position: relative;
+      background: #f8f9fa;
+    }
+    
+    .canvas-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls-panel {
+      padding: 1rem;
+      background: var(--card-bg);
+      border-left: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .slider-container {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .slider-container label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      background: linear-gradient(to right, var(--secondary-color), var(--accent-color));
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border: 2px solid var(--secondary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    #voltage-value {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: var(--secondary-color);
+      text-align: right;
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        aspect-ratio: auto;
+        height: auto;
+      }
+
+      .visualization-container {
+        height: 50vh;
+      }
+
+      .controls-panel {
+        border-left: none;
+        border-top: 1px solid #eee;
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="visualization-container">
+      <div class="canvas-wrapper">
+        <canvas id="voltage-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="slider-container">
+        <label for="voltage-slider">Voltage (0-12V)</label>
+        <input type="range" id="voltage-slider" min="0" max="12" value="6" step="0.1">
+        <div id="voltage-value">6V</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const voltageCanvas = document.getElementById('voltage-canvas');
+    const voltageCtx = voltageCanvas.getContext('2d');
+    let fieldLines = [];
+    const FIELD_LINE_COUNT = 20;
+    let voltageAnimationTime = 0;
+    let voltageValue = 6;
+
+    function resizeCanvas() {
+      voltageCanvas.width = voltageCanvas.parentElement.clientWidth;
+      voltageCanvas.height = voltageCanvas.parentElement.clientHeight;
+    }
+
+    function initializeFieldLines() {
+      fieldLines = [];
+      const spacing = voltageCanvas.height / FIELD_LINE_COUNT;
+
+      for (let i = 0; i < FIELD_LINE_COUNT; i++) {
+        fieldLines.push({
+          y: spacing * i,
+          progress: Math.random(),
+          speed: 0.5 + Math.random() * 0.5
+        });
+      }
+    }
+
+    function drawVoltageVisualization() {
+      voltageCtx.clearRect(0, 0, voltageCanvas.width, voltageCanvas.height);
+      voltageAnimationTime += 0.016;
+
+      const centerX = voltageCanvas.width / 2;
+      const centerY = voltageCanvas.height / 2;
+      const batteryWidth = voltageCanvas.width * 0.4;
+      const batteryHeight = voltageCanvas.height * 0.4;
+
+      // Draw battery with dynamic glow based on voltage
+      const glowIntensity = voltageValue / 12;
+      const glowRadius = 30 * glowIntensity;
+      
+      // Positive terminal glow
+      const positiveGlow = voltageCtx.createRadialGradient(
+        centerX + batteryWidth/4, centerY, 0,
+        centerX + batteryWidth/4, centerY, glowRadius
+      );
+      positiveGlow.addColorStop(0, `rgba(231, 76, 60, ${glowIntensity})`);
+      positiveGlow.addColorStop(1, 'rgba(231, 76, 60, 0)');
+      voltageCtx.fillStyle = positiveGlow;
+      voltageCtx.fillRect(centerX, centerY - batteryHeight/2 - glowRadius, 
+                         batteryWidth/2, batteryHeight + glowRadius * 2);
+
+      // Negative terminal glow
+      const negativeGlow = voltageCtx.createRadialGradient(
+        centerX - batteryWidth/4, centerY, 0,
+        centerX - batteryWidth/4, centerY, glowRadius
+      );
+      negativeGlow.addColorStop(0, `rgba(52, 152, 219, ${glowIntensity})`);
+      negativeGlow.addColorStop(1, 'rgba(52, 152, 219, 0)');
+      voltageCtx.fillStyle = negativeGlow;
+      voltageCtx.fillRect(centerX - batteryWidth/2, centerY - batteryHeight/2 - glowRadius, 
+                         batteryWidth/2, batteryHeight + glowRadius * 2);
+
+      // Draw battery
+      // Negative terminal
+      voltageCtx.fillStyle = '#3498db';
+      voltageCtx.fillRect(centerX - batteryWidth/2, centerY - batteryHeight/2, batteryWidth/4, batteryHeight);
+      
+      // Positive terminal
+      voltageCtx.fillStyle = '#e74c3c';
+      voltageCtx.fillRect(centerX + batteryWidth/4, centerY - batteryHeight/2, batteryWidth/4, batteryHeight);
+
+      // Battery casing
+      voltageCtx.strokeStyle = '#2c3e50';
+      voltageCtx.lineWidth = 3;
+      voltageCtx.strokeRect(centerX - batteryWidth/2, centerY - batteryHeight/2, batteryWidth, batteryHeight);
+
+      // Draw terminals
+      voltageCtx.font = 'bold 24px Arial';
+      voltageCtx.fillStyle = '#fff';
+      voltageCtx.textAlign = 'center';
+      voltageCtx.fillText('−', centerX - batteryWidth/3, centerY + 8);
+      voltageCtx.fillText('+', centerX + batteryWidth/3, centerY + 8);
+
+      // Draw electric field lines
+      const fieldStartX = centerX - batteryWidth/2 - 20;
+      const fieldEndX = centerX + batteryWidth/2 + 20;
+
+      fieldLines.forEach(line => {
+        // Update progress
+        line.progress += line.speed * 0.01 * (voltageValue / 6);
+        if (line.progress > 1) line.progress = 0;
+
+        // Draw field line
+        const gradient = voltageCtx.createLinearGradient(fieldStartX, centerY, fieldEndX, centerY);
+        gradient.addColorStop(0, `rgba(52, 152, 219, ${0.5 * glowIntensity})`);
+        gradient.addColorStop(1, `rgba(231, 76, 60, ${0.5 * glowIntensity})`);
+
+        voltageCtx.strokeStyle = gradient;
+        voltageCtx.lineWidth = 2;
+        
+        // Draw curved field line
+        const curveHeight = 40 * Math.sin(line.y / 50 + voltageAnimationTime) * (voltageValue / 6);
+        
+        voltageCtx.beginPath();
+        voltageCtx.moveTo(fieldStartX, line.y);
+        voltageCtx.bezierCurveTo(
+          centerX - batteryWidth/4, line.y + curveHeight,
+          centerX + batteryWidth/4, line.y - curveHeight,
+          fieldEndX, line.y
+        );
+        voltageCtx.stroke();
+
+        // Draw arrow indicators
+        const arrowPos = line.progress;
+        const arrowX = fieldStartX + (fieldEndX - fieldStartX) * arrowPos;
+        const arrowY = line.y + Math.sin(line.y / 50 + voltageAnimationTime) * 
+                      curveHeight * Math.sin(Math.PI * arrowPos);
+        
+        drawArrow(voltageCtx, arrowX, arrowY, 10, gradient);
+      });
+
+      // Add voltage value display
+      voltageCtx.font = 'bold 20px Arial';
+      voltageCtx.fillStyle = '#2c3e50';
+      voltageCtx.textAlign = 'center';
+      voltageCtx.fillText(`${voltageValue.toFixed(1)}V`, centerX, centerY - batteryHeight/2 - 20);
+
+      requestAnimationFrame(drawVoltageVisualization);
+    }
+
+    function drawArrow(ctx, x, y, size, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - size/2, y - size/2);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x - size/2, y + size/2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Initialize voltage control
+    const voltageSlider = document.getElementById('voltage-slider');
+    const voltageDisplay = document.getElementById('voltage-value');
+
+    voltageSlider.addEventListener('input', function(e) {
+      voltageValue = parseFloat(e.target.value);
+      voltageDisplay.textContent = voltageValue.toFixed(1) + 'V';
+    });
+
+    // Initialize visualization
+    window.addEventListener('load', function() {
+      resizeCanvas();
+      initializeFieldLines();
+      drawVoltageVisualization();
+    });
+
+    window.addEventListener('resize', function() {
+      resizeCanvas();
+      initializeFieldLines();
+    });
+  </script>
+</body>
+</html> 
