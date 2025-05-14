@@ -1,0 +1,63 @@
+.json-editor {
+    height: 300px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.visualization-container {
+    min-height: 400px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.initial-message {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
+    font-style: italic;
+}
+
+.success-message {
+    padding: 10px;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    color: #155724;
+}
+
+.error-message {
+    padding: 10px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    color: #721c24;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .json-editor {
+        height: 200px;
+    }
+    
+    .visualization-container {
+        min-height: 300px;
+    }
+} 
