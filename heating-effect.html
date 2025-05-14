@@ -114,6 +114,24 @@
 </head>
 <body>
     <div class="container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization shows the <b>heating effect of electric current</b>.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Use the <b>Material</b> buttons to switch between copper, aluminum, iron, and nichrome.</li>
+                    <li>Adjust the <b>Current</b>, <b>Length</b>, and <b>Area</b> sliders to see how they affect resistance and power.</li>
+                    <li>Watch electrons move through the wire lattice. Collisions create heat (red particles).</li>
+                    <li>The glowing filament below shows how much heat is produced (P = I²R).</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different settings to see how the heating effect depends on resistance and current!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
         <div class="visualization-container">
         <div class="svg-panel">
             <svg id="lattice-svg" viewBox="0 0 700 520" width="700" height="520" style="display:block; background:#1a1a1a; border-radius:10px;">
@@ -213,7 +231,70 @@ const resistivityValues = {
     aluminum: 2.82e-8,
     iron: 9.70e-8,
     nichrome: 1.10e-6
-                };
+};
+
+// Add voice feedback messages
+const voiceFeedback = {
+    materials: {
+        copper: "Copper has the second lowest resistivity, allowing electrons to flow easily with minimal heat generation.",
+        aluminum: "Aluminum has moderate resistivity, generating more heat than copper but less than iron.",
+        iron: "Iron has higher resistivity, causing more electron collisions and increased heat generation.",
+        nichrome: "Nichrome has the highest resistivity, creating maximum heat through electron collisions - perfect for heating elements."
+    },
+    current: {
+        low: "At low current, fewer electrons flow, resulting in less collisions and minimal heating.",
+        medium: "At medium current, more electrons flow, increasing collisions and heat generation.",
+        high: "At high current, many electrons flow, causing frequent collisions and significant heating."
+    },
+    length: {
+        short: "A shorter conductor means less distance for electrons to travel, reducing total resistance and heating.",
+        medium: "Medium length provides balanced resistance and heat distribution.",
+        long: "A longer conductor increases the distance electrons must travel, raising total resistance and heating."
+    },
+    area: {
+        small: "Small cross-sectional area concentrates electron flow, increasing resistance and heating.",
+        medium: "Medium area provides balanced current flow and heat generation.",
+        large: "Large cross-sectional area allows electrons to spread out, reducing resistance and heating."
+    }
+};
+
+// Function to speak feedback
+function speakFeedback(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop any current speech
+        const utter = new window.SpeechSynthesisUtterance(text);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+// Add voice toggle button
+document.querySelector('.control-panel').insertAdjacentHTML('afterbegin', `
+    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+        <label class="control-label">Voice Feedback:</label>
+        <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+            🔊 Enabled
+        </button>
+    </div>
+`);
+
+let voiceFeedbackEnabled = true;
+
+document.getElementById('voice-toggle').addEventListener('click', function() {
+    voiceFeedbackEnabled = !voiceFeedbackEnabled;
+    this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+    this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+    if (!voiceFeedbackEnabled) {
+        window.speechSynthesis.cancel();
+    }
+});
+
 const latticePatterns = {
     copper: 'url(#conductor-lattice)',
     aluminum: 'url(#aluminum-lattice)',
@@ -371,31 +452,120 @@ function updateSVGResistanceValue(resistance) {
                     }
                 } 
 
+// Update material buttons event listeners
 document.querySelectorAll('.material-button').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.material-button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         material = btn.dataset.material;
+        if (voiceFeedbackEnabled) {
+            speakFeedback(voiceFeedback.materials[material]);
+        }
         updateVisualization();
     });
 });
 
+// Update current slider
 document.getElementById('currentSlider').addEventListener('input', e => {
     current = parseFloat(e.target.value);
+    if (voiceFeedbackEnabled) {
+        if (current <= 3) {
+            speakFeedback(voiceFeedback.current.low);
+        } else if (current <= 7) {
+            speakFeedback(voiceFeedback.current.medium);
+        } else {
+            speakFeedback(voiceFeedback.current.high);
+        }
+    }
     updateVisualization();
 });
 
+// Update length slider
 document.getElementById('lengthSlider').addEventListener('input', e => {
     length = parseFloat(e.target.value);
+    if (voiceFeedbackEnabled) {
+        if (length <= 1.5) {
+            speakFeedback(voiceFeedback.length.short);
+        } else if (length <= 3.5) {
+            speakFeedback(voiceFeedback.length.medium);
+        } else {
+            speakFeedback(voiceFeedback.length.long);
+        }
+    }
     updateVisualization();
 });
 
+// Update area slider
 document.getElementById('areaSlider').addEventListener('input', e => {
     area = parseFloat(e.target.value);
+    if (voiceFeedbackEnabled) {
+        if (area <= 3) {
+            speakFeedback(voiceFeedback.area.small);
+        } else if (area <= 7) {
+            speakFeedback(voiceFeedback.area.medium);
+        } else {
+            speakFeedback(voiceFeedback.area.large);
+        }
+    }
     updateVisualization();
 });
 
-window.addEventListener('load', updateVisualization);
+// Throttle function to prevent too frequent voice feedback
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+// Update slider event listeners to use throttled voice feedback
+document.getElementById('currentSlider').addEventListener('input', throttle(e => {
+    current = parseFloat(e.target.value);
+    document.getElementById('currentValue').textContent = `${current.toFixed(1)} A`;
+    if (voiceFeedbackEnabled) {
+        if (current <= 3) {
+            speakFeedback(voiceFeedback.current.low);
+        } else if (current <= 7) {
+            speakFeedback(voiceFeedback.current.medium);
+        } else {
+            speakFeedback(voiceFeedback.current.high);
+        }
+    }
+    updateVisualization();
+}, 1000));
+
+// Voice-over functionality
+const voiceoverText = `Welcome! This interactive visualization shows the heating effect of electric current. You can change the material, current, length, and area using the controls on the right. Watch how electrons move through the wire lattice, and see how resistance and power change. The glowing filament below shows how much heat is produced. Try different settings to see how the heating effect depends on resistance and current!`;
+
+function playVoiceover() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop any current speech
+        const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        // Try to use a more human-like voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+document.getElementById('play-voiceover').addEventListener('click', playVoiceover);
+document.getElementById('close-instruction').addEventListener('click', function() {
+    document.getElementById('instruction-modal').style.display = 'none';
+    window.speechSynthesis.cancel();
+});
+window.addEventListener('load', () => {
+    document.getElementById('instruction-modal').style.display = 'flex';
+    setTimeout(playVoiceover, 600); // Play voice-over after short delay
+});
     </script>
 </body>
 </html> 

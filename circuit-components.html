@@ -200,6 +200,31 @@
 </head>
 <body>
     <div class="container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization demonstrates <b>basic circuit components</b> and how they work together.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Use the <b>Cell</b> or <b>Battery</b> buttons to change the voltage source.</li>
+                    <li>Adjust the <b>Resistance</b> slider to change the resistor value.</li>
+                    <li>Toggle the <b>ON/OFF</b> button to open or close the circuit.</li>
+                    <li>Observe how the current and voltage change, and watch the animation of electrons moving through the circuit.</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different settings to see how each component affects the circuit!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
+        <!-- Voice Toggle Button -->
+        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+            <label style="color: var(--accent); font-size: 14px;">Voice Feedback:</label>
+            <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+                🔊 Enabled
+            </button>
+        </div>
         <div class="visualization-container">
             <div class="circuit-svg-panel">
                 <svg id="circuitSVG" width="700" height="320" viewBox="0 0 700 320">
@@ -439,6 +464,104 @@
         window.addEventListener('load', () => {
             updateCircuit();
             animateElectrons();
+        });
+
+        // --- Voice Feedback System ---
+        const voiceFeedback = {
+            welcome: `Welcome! This interactive visualization lets you explore basic circuit components. Use the cell or battery buttons to change the voltage source, adjust the resistance slider, and toggle the ON/OFF button to open or close the circuit. Watch how the current and voltage change, and observe the animation of electrons moving through the circuit.`,
+            source: {
+                cell: "Cell selected. The voltage is set to 1.5 volts, representing a single cell.",
+                battery: "Battery selected. The voltage is set to 9 volts, representing a battery pack."
+            },
+            resistance: {
+                low: "Low resistance allows more current to flow through the circuit.",
+                medium: "Medium resistance provides a balanced current.",
+                high: "High resistance restricts the current flow."
+            },
+            onoff: {
+                on: "The circuit is now ON. Current flows through the circuit components.",
+                off: "The circuit is now OFF. The switch is open and no current flows."
+            }
+        };
+
+        function speakFeedback(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new window.SpeechSynthesisUtterance(text);
+                utter.rate = 1.03;
+                utter.pitch = 1.05;
+                utter.volume = 0.95;
+                utter.lang = 'en-US';
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+                if (preferred) utter.voice = preferred;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        let voiceFeedbackEnabled = true;
+        document.getElementById('voice-toggle').addEventListener('click', function() {
+            voiceFeedbackEnabled = !voiceFeedbackEnabled;
+            this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+            this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+            if (!voiceFeedbackEnabled) {
+                window.speechSynthesis.cancel();
+            }
+        });
+
+        // Voice-over functionality
+        const voiceoverText = voiceFeedback.welcome;
+        function playVoiceover() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+                utter.rate = 1.03;
+                utter.pitch = 1.05;
+                utter.volume = 0.95;
+                utter.lang = 'en-US';
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+                if (preferred) utter.voice = preferred;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Add voice feedback to controls
+        cellBtn.addEventListener('click', () => {
+            if (voiceFeedbackEnabled) speakFeedback(voiceFeedback.source.cell);
+        });
+        batteryBtn.addEventListener('click', () => {
+            if (voiceFeedbackEnabled) speakFeedback(voiceFeedback.source.battery);
+        });
+        resistorSlider.addEventListener('input', e => {
+            if (voiceFeedbackEnabled) {
+                const r = parseInt(e.target.value);
+                if (r <= 100) speakFeedback(voiceFeedback.resistance.low);
+                else if (r <= 500) speakFeedback(voiceFeedback.resistance.medium);
+                else speakFeedback(voiceFeedback.resistance.high);
+            }
+        });
+        onoffBtn.addEventListener('click', () => {
+            if (voiceFeedbackEnabled) speakFeedback(circuitOn ? voiceFeedback.onoff.off : voiceFeedback.onoff.on);
+        });
+        // Modal controls
+        document.getElementById('play-voiceover').addEventListener('click', playVoiceover);
+        document.getElementById('close-instruction').addEventListener('click', function() {
+            document.getElementById('instruction-modal').style.display = 'none';
+            window.speechSynthesis.cancel();
+        });
+        // Show modal and play voiceover on load
+        window.addEventListener('load', function() {
+            document.getElementById('instruction-modal').style.display = 'flex';
+            setTimeout(playVoiceover, 1000);
+        });
+        // Pause/resume voice on tab visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                window.speechSynthesis.pause();
+            } else {
+                window.speechSynthesis.resume();
+            }
         });
     </script>
 </body>

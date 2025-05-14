@@ -129,7 +129,25 @@
 </head>
 <body>
     <div class="container">
-    <div class="visualization-container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization demonstrates <b>Ohm's Law</b>.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Use the <b>Voltage</b> slider to adjust the battery voltage (0-12V).</li>
+                    <li>Adjust the <b>Resistance</b> slider to change the resistor value (100-2000Ω).</li>
+                    <li>Watch how the current automatically adjusts according to Ohm's Law (I = V/R).</li>
+                    <li>Observe the electron flow speed and density change with current.</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different voltage and resistance combinations to see how they affect current flow!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
+        <div class="visualization-container">
             <div class="circuit-panel">
                 <canvas id="circuitCanvas"></canvas>
             </div>
@@ -420,10 +438,88 @@
             animationId = requestAnimationFrame(animate);
         }
 
-        // Initialize controls
+        // Add voice feedback messages
+        const voiceFeedback = {
+            voltage: {
+                low: "At low voltage, fewer electrons flow, resulting in lower current.",
+                medium: "At medium voltage, more electrons flow, increasing current.",
+                high: "At high voltage, many electrons flow, creating significant current."
+            },
+            resistance: {
+                low: "Low resistance allows electrons to flow easily, resulting in higher current.",
+                medium: "Medium resistance provides balanced current flow.",
+                high: "High resistance restricts electron flow, reducing current."
+            }
+        };
+
+        // Function to speak feedback
+        function speakFeedback(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any current speech
+                const utter = new window.SpeechSynthesisUtterance(text);
+                utter.rate = 1.03;
+                utter.pitch = 1.05;
+                utter.volume = 0.95;
+                utter.lang = 'en-US';
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+                if (preferred) utter.voice = preferred;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Add voice toggle button
+        document.querySelector('.control-panel').insertAdjacentHTML('afterbegin', `
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <label class="control-label">Voice Feedback:</label>
+                <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+                    🔊 Enabled
+                </button>
+            </div>
+        `);
+
+        let voiceFeedbackEnabled = true;
+
+        document.getElementById('voice-toggle').addEventListener('click', function() {
+            voiceFeedbackEnabled = !voiceFeedbackEnabled;
+            this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+            this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+            if (!voiceFeedbackEnabled) {
+                window.speechSynthesis.cancel();
+            }
+        });
+
+        // Voice-over functionality
+        const voiceoverText = `Welcome to the Ohm's Law visualization! This interactive demonstration shows how voltage and resistance affect electric current. You can adjust the voltage using the slider on the left, and change the resistance using the slider on the right. Watch how the current automatically adjusts according to Ohm's Law: current equals voltage divided by resistance. The moving electrons show you the current flow, and their speed changes with the current. Try different combinations to see how they affect the circuit!`;
+
+        function playVoiceover() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any current speech
+                const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+                utter.rate = 1.03;
+                utter.pitch = 1.05;
+                utter.volume = 0.95;
+                utter.lang = 'en-US';
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+                if (preferred) utter.voice = preferred;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Initialize controls with voice feedback
         document.getElementById('voltageSlider').addEventListener('input', (e) => {
             circuit.voltage = parseFloat(e.target.value);
             document.getElementById('voltageValue').textContent = `${circuit.voltage.toFixed(1)} V`;
+            if (voiceFeedbackEnabled) {
+                if (circuit.voltage <= 4) {
+                    speakFeedback(voiceFeedback.voltage.low);
+                } else if (circuit.voltage <= 8) {
+                    speakFeedback(voiceFeedback.voltage.medium);
+                } else {
+                    speakFeedback(voiceFeedback.voltage.high);
+                }
+            }
             calculateCircuit();
             createElectrons();
         });
@@ -431,8 +527,24 @@
         document.getElementById('resistanceSlider').addEventListener('input', (e) => {
             circuit.resistance = parseFloat(e.target.value);
             document.getElementById('resistanceValue').textContent = `${circuit.resistance.toFixed(0)} Ω`;
+            if (voiceFeedbackEnabled) {
+                if (circuit.resistance <= 700) {
+                    speakFeedback(voiceFeedback.resistance.low);
+                } else if (circuit.resistance <= 1300) {
+                    speakFeedback(voiceFeedback.resistance.medium);
+                } else {
+                    speakFeedback(voiceFeedback.resistance.high);
+                }
+            }
             calculateCircuit();
             createElectrons();
+        });
+
+        // Add event listeners for voice-over controls
+        document.getElementById('play-voiceover').addEventListener('click', playVoiceover);
+        document.getElementById('close-instruction').addEventListener('click', function() {
+            document.getElementById('instruction-modal').style.display = 'none';
+            window.speechSynthesis.cancel();
         });
 
         // Initialize
@@ -441,6 +553,19 @@
             calculateCircuit();
             createElectrons();
             animate();
+            // Show instruction modal
+            document.getElementById('instruction-modal').style.display = 'flex';
+            // Play voice-over after a short delay
+            setTimeout(playVoiceover, 1000);
+        });
+
+        // Prevent voice from being interrupted by page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                window.speechSynthesis.pause();
+            } else {
+                window.speechSynthesis.resume();
+            }
         });
 
         window.addEventListener('resize', resizeCanvas);

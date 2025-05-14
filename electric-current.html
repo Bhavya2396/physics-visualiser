@@ -166,6 +166,24 @@
 </head>
 <body>
     <div class="container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization demonstrates <b>electric current and electron flow</b>.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Adjust the <b>Current Flow Rate</b> slider to control electron movement.</li>
+                    <li>Watch electrons flow through the conductor in multiple lanes.</li>
+                    <li>Observe how current is measured in amperes (A).</li>
+                    <li>Notice the relationship between electron flow rate and current.</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different flow rates to understand how current is related to the movement of electrons!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
         <div class="visualization-container">
             <div class="animation-container" id="currentAnimation"></div>
             <div class="formula" style="margin: 24px auto 0 auto; background: var(--secondary); border-radius: 8px; text-align: center; padding: 14px 0 10px 0; width: 340px; box-shadow: 0 0 18px 2px #222a;">
@@ -186,6 +204,64 @@
     </div>
 
     <script>
+        // Add voice feedback messages
+        const voiceFeedback = {
+            currentRate: {
+                low: "Low current flow rate - electrons move slowly through the conductor, creating minimal current.",
+                medium: "Medium current flow rate - electrons move at a moderate pace, generating a balanced current.",
+                high: "High current flow rate - electrons move rapidly, creating a strong current through the conductor."
+            }
+        };
+
+        // Function to speak feedback
+        function speakFeedback(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any current speech
+                const utter = new window.SpeechSynthesisUtterance(text);
+                utter.rate = 1.03;
+                utter.pitch = 1.05;
+                utter.volume = 0.95;
+                utter.lang = 'en-US';
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+                if (preferred) utter.voice = preferred;
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Add voice toggle button
+        document.querySelector('.control-panel').insertAdjacentHTML('afterbegin', `
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <label class="control-label">Voice Feedback:</label>
+                <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+                    🔊 Enabled
+                </button>
+            </div>
+        `);
+
+        let voiceFeedbackEnabled = true;
+
+        document.getElementById('voice-toggle').addEventListener('click', function() {
+            voiceFeedbackEnabled = !voiceFeedbackEnabled;
+            this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+            this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+            if (!voiceFeedbackEnabled) {
+                window.speechSynthesis.cancel();
+            }
+        });
+
+        // Throttle function to prevent too frequent voice feedback
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
         class ElectronAnimation {
             constructor(container) {
                 this.container = container;
@@ -210,11 +286,21 @@
             }
             
             setupEventListeners() {
-                // Current rate control
-                document.getElementById('currentRate').addEventListener('input', (e) => {
+                // Current rate control with voice feedback
+                document.getElementById('currentRate').addEventListener('input', throttle((e) => {
                     this.currentRate = parseInt(e.target.value);
                     this.updateDisplay();
-                });
+                    
+                    if (voiceFeedbackEnabled) {
+                        if (this.currentRate <= 30) {
+                            speakFeedback(voiceFeedback.currentRate.low);
+                        } else if (this.currentRate <= 70) {
+                            speakFeedback(voiceFeedback.currentRate.medium);
+                        } else {
+                            speakFeedback(voiceFeedback.currentRate.high);
+                        }
+                    }
+                }, 1000));
             }
             
             createElectron(lane) {
@@ -273,10 +359,115 @@
             }
         }
 
-        // Initialize animation when the page loads
+        // Voice-over functionality
+        const voiceoverText = `Welcome to the Electric Current visualization! Here you can explore how electric current is created by the flow of electrons. Adjust the current flow rate to see how it affects electron movement and current strength. Watch how electrons flow through multiple lanes in the conductor, and observe how current is measured in amperes. Try different flow rates to understand the relationship between electron movement and electric current!`;
+
+        let currentVoice = null;
+
+        function playVoiceover() {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                // Create new utterance
+                const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+                currentVoice = utter;
+
+                // Configure voice settings
+                utter.rate = 1.0;  // Slightly slower rate for better clarity
+                utter.pitch = 1.0;
+                utter.volume = 1.0;
+                utter.lang = 'en-US';
+
+                // Get available voices
+                let voices = window.speechSynthesis.getVoices();
+                
+                // If voices aren't loaded yet, wait for them
+                if (voices.length === 0) {
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        voices = window.speechSynthesis.getVoices();
+                        setVoice(voices);
+                    };
+                } else {
+                    setVoice(voices);
+                }
+
+                // Add event listeners for better control
+                utter.onend = () => {
+                    currentVoice = null;
+                };
+
+                utter.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+                    currentVoice = null;
+                    // Retry once after a short delay
+                    setTimeout(() => {
+                        if (voiceFeedbackEnabled) {
+                            playVoiceover();
+                        }
+                    }, 1000);
+                };
+
+                // Start speaking
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        function setVoice(voices) {
+            if (!currentVoice) return;
+            
+            // Try to find a preferred voice
+            const preferred = voices.find(v => 
+                v.name.toLowerCase().includes('female') || 
+                v.name.toLowerCase().includes('natural') ||
+                v.name.toLowerCase().includes('samantha')
+            );
+            
+            if (preferred) {
+                currentVoice.voice = preferred;
+            }
+        }
+
+        // Add event listeners for voice-over controls
+        document.getElementById('play-voiceover').addEventListener('click', () => {
+            if (currentVoice) {
+                window.speechSynthesis.cancel();
+                currentVoice = null;
+            }
+            playVoiceover();
+        });
+
+        document.getElementById('close-instruction').addEventListener('click', function() {
+            document.getElementById('instruction-modal').style.display = 'none';
+            if (currentVoice) {
+                window.speechSynthesis.cancel();
+                currentVoice = null;
+            }
+        });
+
+        // Initialize animation and show instruction modal when the page loads
         window.addEventListener('load', () => {
             const container = document.getElementById('currentAnimation');
             new ElectronAnimation(container);
+            document.getElementById('instruction-modal').style.display = 'flex';
+            
+            // Wait for voices to be loaded before playing
+            if (window.speechSynthesis.getVoices().length === 0) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    setTimeout(playVoiceover, 1000);
+                };
+            } else {
+                setTimeout(playVoiceover, 1000);
+            }
+        });
+
+        // Prevent voice from being interrupted by page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && currentVoice) {
+                window.speechSynthesis.pause();
+            } else if (!document.hidden && currentVoice) {
+                window.speechSynthesis.resume();
+            }
         });
     </script>
 </body>

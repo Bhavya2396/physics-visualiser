@@ -287,6 +287,24 @@
 </head>
 <body>
     <div class="container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization helps you understand the <b>factors affecting electric current and resistance</b>.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Explore <b>four key factors</b> that affect electrical resistance: material, length, area, and temperature.</li>
+                    <li>Use the <b>Material</b> buttons to switch between different conductors like copper, aluminum, iron, and silver.</li>
+                    <li>Adjust the <b>Length</b>, <b>Area</b>, and <b>Temperature</b> sliders to see how they affect electron movement.</li>
+                    <li>Watch how electrons (blue dots) move through the conductor and observe their behavior.</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different combinations to understand how each factor influences electrical resistance!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
         <div class="factors-container">
             <!-- Material Factor -->
             <div class="factor-card">
@@ -1005,10 +1023,274 @@
             }
         }
 
-        // Initialize animation when the page loads
+        // Voice-over functionality
+        const voiceoverText = `Welcome to the Factors Affecting Electric Current visualization! Here you can explore how different materials, conductor length, cross-sectional area, and temperature affect electrical resistance. Watch how electrons move through the conductor and see how their behavior changes. Use the controls to adjust each factor and observe the impact on resistance. This will help you understand the fundamental principles of electrical conductivity and resistance.`;
+
+        let currentVoice = null;
+
+        function playVoiceover() {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                // Create new utterance
+                const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+                currentVoice = utter;
+
+                // Configure voice settings
+                utter.rate = 1.0;  // Slightly slower rate for better clarity
+                utter.pitch = 1.0;
+                utter.volume = 1.0;
+                utter.lang = 'en-US';
+
+                // Get available voices
+                let voices = window.speechSynthesis.getVoices();
+                
+                // If voices aren't loaded yet, wait for them
+                if (voices.length === 0) {
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        voices = window.speechSynthesis.getVoices();
+                        setVoice(voices);
+                    };
+                } else {
+                    setVoice(voices);
+                }
+
+                // Add event listeners for better control
+                utter.onend = () => {
+                    currentVoice = null;
+                };
+
+                utter.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+                    currentVoice = null;
+                    // Retry once after a short delay
+                    setTimeout(() => {
+                        if (voiceFeedbackEnabled) {
+                            playVoiceover();
+                        }
+                    }, 1000);
+                };
+
+                // Start speaking
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        function setVoice(voices) {
+            if (!currentVoice) return;
+            
+            // Try to find a preferred voice
+            const preferred = voices.find(v => 
+                v.name.toLowerCase().includes('female') || 
+                v.name.toLowerCase().includes('natural') ||
+                v.name.toLowerCase().includes('samantha')
+            );
+            
+            if (preferred) {
+                currentVoice.voice = preferred;
+            }
+        }
+
+        // Update speakFeedback function to use the same improvements
+        function speakFeedback(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new window.SpeechSynthesisUtterance(text);
+                currentVoice = utter;
+
+                utter.rate = 1.0;
+                utter.pitch = 1.0;
+                utter.volume = 1.0;
+                utter.lang = 'en-US';
+
+                let voices = window.speechSynthesis.getVoices();
+                if (voices.length === 0) {
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        voices = window.speechSynthesis.getVoices();
+                        setVoice(voices);
+                    };
+                } else {
+                    setVoice(voices);
+                }
+
+                utter.onend = () => {
+                    currentVoice = null;
+                };
+
+                utter.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+                    currentVoice = null;
+                };
+
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Initialize animation and show instruction modal when the page loads
         window.addEventListener('load', () => {
-            new FactorsAnimation();
+            // Initialize the animation first
+            const animation = new FactorsAnimation();
+            
+            // Show the instruction modal
+            const modal = document.getElementById('instruction-modal');
+            modal.style.display = 'flex';
+            
+            // Wait for voices to be loaded before playing
+            if (window.speechSynthesis.getVoices().length === 0) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    setTimeout(playVoiceover, 1000);
+                };
+            } else {
+                setTimeout(playVoiceover, 1000);
+            }
         });
+
+        // Add event listeners for voice-over controls
+        document.getElementById('play-voiceover').addEventListener('click', () => {
+            if (currentVoice) {
+                window.speechSynthesis.cancel();
+                currentVoice = null;
+            }
+            playVoiceover();
+        });
+
+        document.getElementById('close-instruction').addEventListener('click', function() {
+            const modal = document.getElementById('instruction-modal');
+            modal.style.display = 'none';
+            if (currentVoice) {
+                window.speechSynthesis.cancel();
+                currentVoice = null;
+            }
+        });
+
+        // Prevent voice from being interrupted by page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && currentVoice) {
+                window.speechSynthesis.pause();
+            } else if (!document.hidden && currentVoice) {
+                window.speechSynthesis.resume();
+            }
+        });
+
+        // Add voice toggle button
+        document.querySelector('.container').insertAdjacentHTML('afterbegin', `
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                <label style="color: var(--accent); font-size: 14px;">Voice Feedback:</label>
+                <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+                    🔊 Enabled
+                </button>
+            </div>
+        `);
+
+        let voiceFeedbackEnabled = true;
+
+        document.getElementById('voice-toggle').addEventListener('click', function() {
+            voiceFeedbackEnabled = !voiceFeedbackEnabled;
+            this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+            this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+            if (!voiceFeedbackEnabled) {
+                window.speechSynthesis.cancel();
+            }
+        });
+
+        // Add voice feedback messages
+        const voiceFeedback = {
+            materials: {
+                copper: "Copper has the lowest resistivity, allowing electrons to flow easily with minimal resistance.",
+                aluminum: "Aluminum has moderate resistivity, providing good conductivity at a lower cost.",
+                iron: "Iron has higher resistivity, causing more electron collisions and increased resistance.",
+                silver: "Silver has the lowest resistivity of all common metals, offering excellent conductivity."
+            },
+            length: {
+                short: "A shorter conductor means less distance for electrons to travel, reducing total resistance.",
+                medium: "Medium length provides balanced resistance and current flow.",
+                long: "A longer conductor increases the distance electrons must travel, raising total resistance."
+            },
+            area: {
+                small: "Small cross-sectional area concentrates electron flow, increasing resistance.",
+                medium: "Medium area provides balanced current flow and resistance.",
+                large: "Large cross-sectional area allows electrons to spread out, reducing resistance."
+            },
+            temperature: {
+                low: "Lower temperature reduces atomic vibrations, allowing electrons to flow more freely.",
+                medium: "Room temperature provides normal operating conditions for most conductors.",
+                high: "Higher temperature increases atomic vibrations, causing more electron collisions and higher resistance."
+            }
+        };
+
+        // Throttle function to prevent too frequent voice feedback
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
+        // Update material buttons event listeners with voice feedback
+        document.querySelectorAll('.material-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.material-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                material = btn.dataset.material;
+                if (voiceFeedbackEnabled) {
+                    speakFeedback(voiceFeedback.materials[material]);
+                }
+                updateVisualization();
+            });
+        });
+
+        // Update length slider with voice feedback
+        document.getElementById('lengthSlider').addEventListener('input', throttle(e => {
+            length = parseFloat(e.target.value);
+            document.getElementById('lengthValue').textContent = `${length.toFixed(1)} m`;
+            if (voiceFeedbackEnabled) {
+                if (length <= 1.5) {
+                    speakFeedback(voiceFeedback.length.short);
+                } else if (length <= 3.5) {
+                    speakFeedback(voiceFeedback.length.medium);
+                } else {
+                    speakFeedback(voiceFeedback.length.long);
+                }
+            }
+            updateVisualization();
+        }, 1000));
+
+        // Update area slider with voice feedback
+        document.getElementById('areaSlider').addEventListener('input', throttle(e => {
+            area = parseFloat(e.target.value);
+            document.getElementById('areaValue').textContent = `${area.toFixed(1)} mm²`;
+            if (voiceFeedbackEnabled) {
+                if (area <= 3) {
+                    speakFeedback(voiceFeedback.area.small);
+                } else if (area <= 7) {
+                    speakFeedback(voiceFeedback.area.medium);
+                } else {
+                    speakFeedback(voiceFeedback.area.large);
+                }
+            }
+            updateVisualization();
+        }, 1000));
+
+        // Update temperature slider with voice feedback
+        document.getElementById('temperatureSlider').addEventListener('input', throttle(e => {
+            temperature = parseInt(e.target.value);
+            document.getElementById('temperatureValue').textContent = `${temperature}°C`;
+            if (voiceFeedbackEnabled) {
+                if (temperature <= 15) {
+                    speakFeedback(voiceFeedback.temperature.low);
+                } else if (temperature <= 35) {
+                    speakFeedback(voiceFeedback.temperature.medium);
+                } else {
+                    speakFeedback(voiceFeedback.temperature.high);
+                }
+            }
+            updateVisualization();
+        }, 1000));
     </script>
 </body>
 </html> 

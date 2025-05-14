@@ -204,6 +204,31 @@
 </head>
 <body>
   <div class="container">
+    <!-- Instruction Modal (hidden by default) -->
+    <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+      <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+        <strong>How to use this visualization:</strong><br>
+        Welcome! This interactive visualization demonstrates <b>series, parallel, and mixed resistor circuits</b>.<br>
+        <ul style="margin:10px 0 0 18px;">
+          <li>Use the <b>circuit type</b> buttons to switch between series, parallel, and mixed configurations.</li>
+          <li>Adjust the <b>Voltage</b> and each <b>Resistor</b> (R₁, R₂, R₃) using the sliders.</li>
+          <li>Observe how total resistance, current, and power change for each configuration.</li>
+          <li>Watch the animation to see how electrons flow in each circuit type.</li>
+        </ul>
+        <span style="color:#4a9eff;">Try different settings to see how circuit configuration affects current and resistance!</span>
+        <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+          <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+          <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+        </div>
+      </div>
+    </div>
+    <!-- Voice Toggle Button -->
+    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+      <label style="color: var(--accent); font-size: 14px;">Voice Feedback:</label>
+      <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+        🔊 Enabled
+      </button>
+    </div>
     <div class="visualization-panel">
       <div class="canvas-container">
         <canvas id="circuitCanvas" width="700" height="400"></canvas>
@@ -755,13 +780,25 @@
     
     // Draw parallel circuit
     function drawParallelCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY) {
-        // Rails
-        const railLength = circuitWidth * 0.65;
-        const verticalSpread = circuitHeight * 0.7;
+        // Rails - increase rail length to use more space
+        const railLength = circuitWidth * 0.7; // Increased from 0.5 to use more horizontal space
+        const verticalSpread = circuitHeight * 0.8; // Increased from 0.7 to use more vertical space
         const topRailY = batteryY - verticalSpread/2;
         const bottomRailY = batteryY + verticalSpread/2;
-        const railX = batteryX + batteryWidth/2 + circuitWidth*0.08;
+        const railX = batteryX + batteryWidth/2 + circuitWidth*0.05; // Reduced from 0.08 to start more left
         
+        // Resistor positions - spread out more
+        const r1X = railX + railLength/4;
+        const r1Y = (topRailY + bottomRailY)/2;
+        const r2X = railX + railLength/2;
+        const r2Y = (topRailY + bottomRailY)/2;
+        const r3X = railX + 3*railLength/4;
+        const r3Y = (topRailY + bottomRailY)/2;
+
+        // Increase resistor size
+        const adjustedResistorWidth = resistorWidth * 1.2;
+        const adjustedResistorHeight = resistorHeight * 1.2;
+
         // Draw top rail
         ctx.strokeStyle = colors.wire;
         ctx.lineWidth = 3;
@@ -769,278 +806,235 @@
         ctx.moveTo(batteryX + batteryWidth/2, batteryY);
         ctx.lineTo(railX, batteryY);
         ctx.lineTo(railX, topRailY);
-        ctx.lineTo(railX + railLength, topRailY);
+        ctx.lineTo(r3X, topRailY);
         ctx.stroke();
         
         // Draw bottom rail
         ctx.beginPath();
         ctx.moveTo(batteryX - batteryWidth/2, batteryY);
-        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, batteryY);
-        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, bottomRailY);
-        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.03, batteryY); // Reduced from 0.04 to keep battery connection tight
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.03, bottomRailY);
+        ctx.lineTo(r3X, bottomRailY);
         ctx.stroke();
         
-        // Connect top and bottom rails
+        // Draw left vertical connection
         ctx.beginPath();
-        ctx.moveTo(railX + railLength, topRailY);
-        ctx.lineTo(railX + railLength, bottomRailY);
+        ctx.moveTo(railX, batteryY);
+        ctx.lineTo(railX, topRailY);
         ctx.stroke();
-        
-        // Resistor positions (3 parallel branches)
-        const r1X = railX + railLength/4;
-        const r1Y = (topRailY + bottomRailY)/2;
-        const r2X = railX + railLength/2;
-        const r2Y = (topRailY + bottomRailY)/2;
-        const r3X = railX + 3*railLength/4;
-        const r3Y = (topRailY + bottomRailY)/2;
         
         // Vertical wires to resistors
-        [[r1X, topRailY, r1X, r1Y - resistorHeight/2], [r1X, r1Y + resistorHeight/2, r1X, bottomRailY],
-         [r2X, topRailY, r2X, r2Y - resistorHeight/2], [r2X, r2Y + resistorHeight/2, r2X, bottomRailY],
-         [r3X, topRailY, r3X, r3Y - resistorHeight/2], [r3X, r3Y + resistorHeight/2, r3X, bottomRailY]]
+        [[r1X, topRailY, r1X, r1Y - adjustedResistorHeight/2], [r1X, r1Y + adjustedResistorHeight/2, r1X, bottomRailY],
+         [r2X, topRailY, r2X, r2Y - adjustedResistorHeight/2], [r2X, r2Y + adjustedResistorHeight/2, r2X, bottomRailY],
+         [r3X, topRailY, r3X, r3Y - adjustedResistorHeight/2], [r3X, r3Y + adjustedResistorHeight/2, r3X, bottomRailY]]
         .forEach(([x1, y1, x2, y2]) => {
-        ctx.beginPath();
+            ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
-        ctx.stroke();
+            ctx.stroke();
         });
         
         // Draw connection nodes
         ctx.fillStyle = colors.wire;
         [
             [r1X, topRailY], [r2X, topRailY], [r3X, topRailY],
-            [r1X, bottomRailY], [r2X, bottomRailY], [r3X, bottomRailY]
+            [r1X, bottomRailY], [r2X, bottomRailY], [r3X, bottomRailY],
+            [railX, topRailY], [railX, bottomRailY]
         ].forEach(([x, y]) => {
-        ctx.beginPath();
+            ctx.beginPath();
             ctx.arc(x, y, circuitWidth*0.012, 0, Math.PI * 2);
-        ctx.fill();
+            ctx.fill();
         });
         
-        // Draw resistors
-        drawResistor(r1X, r1Y, resistorWidth, resistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
-        drawResistor(r2X, r2Y, resistorWidth, resistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
-        drawResistor(r3X, r3Y, resistorWidth, resistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
+        // Draw resistors with increased size
+        drawResistor(r1X, r1Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
+        drawResistor(r2X, r2Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
+        drawResistor(r3X, r3Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
         
-        // Store resistor positions for animation
-        circuit.resistors = [
-            { x: r1X, y: r1Y, width: resistorWidth, height: resistorHeight, type: 'r1' },
-            { x: r2X, y: r2Y, width: resistorWidth, height: resistorHeight, type: 'r2' },
-            { x: r3X, y: r3Y, width: resistorWidth, height: resistorHeight, type: 'r3' }
-        ];
-        
-        // Store wire paths for animation
-        const electronCount = Math.max(5, Math.min(20, Math.floor(circuit.totalCurrent / 2)));
-        const pathPoints = [
-            // Battery to top rail
+        // Update animation paths
+        circuit.currentPathPoints = [
             { x: batteryX + batteryWidth/2, y: batteryY },
             { x: railX, y: batteryY },
             { x: railX, y: topRailY },
-            { x: railX + railLength, y: topRailY },
-            // r1 branch
+            { x: r3X, y: topRailY },
             { x: r1X, y: topRailY },
             { x: r1X, y: bottomRailY },
-            { x: railX + railLength, y: bottomRailY },
-            // r2 branch
             { x: r2X, y: bottomRailY },
             { x: r2X, y: topRailY },
-            // r3 branch
             { x: r3X, y: topRailY },
             { x: r3X, y: bottomRailY },
-            // bottom rail to battery
-            { x: railX + railLength, y: bottomRailY },
-            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY },
-            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY },
-            { x: batteryX + batteryWidth/2, y: batteryY }
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: batteryY },
+            { x: batteryX - batteryWidth/2, y: batteryY }
         ];
-        circuit.currentPathPoints = pathPoints;
-        circuit.currentPathLength = getPathLength(pathPoints);
+        circuit.currentPathLength = getPathLength(circuit.currentPathPoints);
 
-        // Define split and recombine points
-        const splitPoint = { x: railX, y: topRailY };
-        const recombinePoint = { x: railX + railLength, y: bottomRailY };
-        // Branch paths
+        // Update branch paths
         circuit.parallelBranchPaths = [
-            // R1 branch
             [
-                { x: splitPoint.x, y: splitPoint.y },
+                { x: railX, y: topRailY },
                 { x: r1X, y: topRailY },
                 { x: r1X, y: bottomRailY },
-                { x: recombinePoint.x, y: recombinePoint.y }
+                { x: r3X, y: bottomRailY }
             ],
-            // R2 branch
             [
-                { x: splitPoint.x, y: splitPoint.y },
+                { x: railX, y: topRailY },
                 { x: r2X, y: topRailY },
                 { x: r2X, y: bottomRailY },
-                { x: recombinePoint.x, y: recombinePoint.y }
+                { x: r3X, y: bottomRailY }
             ],
-            // R3 branch
             [
-                { x: splitPoint.x, y: splitPoint.y },
+                { x: railX, y: topRailY },
                 { x: r3X, y: topRailY },
-                { x: r3X, y: bottomRailY },
-                { x: recombinePoint.x, y: recombinePoint.y }
+                { x: r3X, y: bottomRailY }
             ]
         ];
         circuit.parallelBranchCurrents = [circuit.r1Current, circuit.r2Current, circuit.r3Current];
         circuit.parallelSplitStart = { x: batteryX + batteryWidth/2, y: batteryY };
         circuit.parallelSplitMid = { x: railX, y: batteryY };
-        circuit.parallelSplitPoint = splitPoint;
-        circuit.parallelRecombinePoint = recombinePoint;
-        circuit.parallelReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY };
-        circuit.parallelReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY };
-        circuit.parallelReturnStart = { x: railX + railLength, y: bottomRailY };
+        circuit.parallelSplitPoint = { x: railX, y: topRailY };
+        circuit.parallelRecombinePoint = { x: r3X, y: bottomRailY };
+        circuit.parallelReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: bottomRailY };
+        circuit.parallelReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: batteryY };
+        circuit.parallelReturnStart = { x: r3X, y: bottomRailY };
     }
     
     // Draw mixed circuit (R1 in series with R2 and R3 in parallel)
     function drawMixedCircuit(batteryX, batteryY, batteryWidth, batteryHeight, resistorWidth, resistorHeight, circuitWidth, circuitHeight, padX, padY) {
-        // Series part
-        const spacing = (circuitWidth * 0.18);
+        // Series part - adjust spacing
+        const spacing = (circuitWidth * 0.15); // Reduced from 0.18 to allow more space for parallel section
         const r1X = batteryX + batteryWidth/2 + spacing + resistorWidth/2;
         const r1Y = batteryY;
         
-        // Draw R1 (in series)
-        drawResistor(r1X, r1Y, resistorWidth, resistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
-        
-        // Parallel section
-        const railLength = circuitWidth * 0.32;
-        const verticalSpread = circuitHeight * 0.5;
+        // Parallel section - increase rail length
+        const railLength = circuitWidth * 0.45; // Increased from 0.25 to use more space
+        const verticalSpread = circuitHeight * 0.7; // Increased from 0.5 to use more vertical space
         const topRailY = batteryY - verticalSpread/2;
         const bottomRailY = batteryY + verticalSpread/2;
         const railX = r1X + resistorWidth/2 + spacing;
+
+        // Increase resistor size
+        const adjustedResistorWidth = resistorWidth * 1.2;
+        const adjustedResistorHeight = resistorHeight * 1.2;
         
-        // Draw rails
-        ctx.strokeStyle = colors.wire;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(batteryX + batteryWidth/2, batteryY);
-        ctx.lineTo(r1X - resistorWidth/2, r1Y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(r1X + resistorWidth/2, r1Y);
-        ctx.lineTo(railX, r1Y);
-        ctx.lineTo(railX, topRailY);
-        ctx.lineTo(railX + railLength, topRailY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(railX, bottomRailY);
-        ctx.lineTo(railX + railLength, bottomRailY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(railX + railLength, topRailY);
-        ctx.lineTo(railX + railLength, bottomRailY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(railX, bottomRailY);
-        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, bottomRailY);
-        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.04, batteryY);
-        ctx.lineTo(batteryX - batteryWidth/2, batteryY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(railX, bottomRailY);
-        ctx.lineTo(railX, topRailY);
-        ctx.stroke();
-        
-        // Resistor positions (2 parallel branches)
+        // Resistor positions - spread out more
         const r2X = railX + railLength/3;
         const r2Y = (topRailY + bottomRailY)/2;
         const r3X = railX + 2*railLength/3;
         const r3Y = (topRailY + bottomRailY)/2;
+
+        // Draw R1 (in series) with increased size
+        drawResistor(r1X, r1Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor1, circuit.r1, circuit.r1Current, circuit.r1Voltage);
+        
+        ctx.strokeStyle = colors.wire;
+        ctx.lineWidth = 3;
+        
+        // Draw connection from battery to R1
+        ctx.beginPath();
+        ctx.moveTo(batteryX + batteryWidth/2, batteryY);
+        ctx.lineTo(r1X - adjustedResistorWidth/2, r1Y);
+        ctx.stroke();
+        
+        // Draw connection from R1 to parallel section
+        ctx.beginPath();
+        ctx.moveTo(r1X + adjustedResistorWidth/2, r1Y);
+        ctx.lineTo(railX, r1Y);
+        ctx.lineTo(railX, topRailY);
+        ctx.lineTo(r3X, topRailY);
+        ctx.stroke();
+        
+        // Draw bottom rail
+        ctx.beginPath();
+        ctx.moveTo(railX, bottomRailY);
+        ctx.lineTo(r3X, bottomRailY);
+        ctx.stroke();
+        
+        // Draw return path
+        ctx.beginPath();
+        ctx.moveTo(railX, bottomRailY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.03, bottomRailY);
+        ctx.lineTo(batteryX - batteryWidth/2 - circuitWidth*0.03, batteryY);
+        ctx.lineTo(batteryX - batteryWidth/2, batteryY);
+        ctx.stroke();
+        
+        // Draw left vertical connection
+        ctx.beginPath();
+        ctx.moveTo(railX, r1Y);
+        ctx.lineTo(railX, topRailY);
+        ctx.stroke();
         
         // Vertical wires to resistors
-        [[r2X, topRailY, r2X, r2Y - resistorHeight/2], [r2X, r2Y + resistorHeight/2, r2X, bottomRailY],
-         [r3X, topRailY, r3X, r3Y - resistorHeight/2], [r3X, r3Y + resistorHeight/2, r3X, bottomRailY]]
+        [[r2X, topRailY, r2X, r2Y - adjustedResistorHeight/2], [r2X, r2Y + adjustedResistorHeight/2, r2X, bottomRailY],
+         [r3X, topRailY, r3X, r3Y - adjustedResistorHeight/2], [r3X, r3Y + adjustedResistorHeight/2, r3X, bottomRailY]]
         .forEach(([x1, y1, x2, y2]) => {
-        ctx.beginPath();
+            ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
-        ctx.stroke();
+            ctx.stroke();
         });
         
         // Draw connection nodes
         ctx.fillStyle = colors.wire;
         [
             [batteryX + batteryWidth/2, batteryY],
-            [r1X - resistorWidth/2, r1Y],
-            [r1X + resistorWidth/2, r1Y],
-            [r2X, topRailY], [r3X, topRailY], [r2X, bottomRailY], [r3X, bottomRailY],
+            [r1X - adjustedResistorWidth/2, r1Y],
+            [r1X + adjustedResistorWidth/2, r1Y],
+            [r2X, topRailY], [r3X, topRailY],
+            [r2X, bottomRailY], [r3X, bottomRailY],
             [railX, topRailY], [railX, bottomRailY]
         ].forEach(([x, y]) => {
-        ctx.beginPath();
+            ctx.beginPath();
             ctx.arc(x, y, circuitWidth*0.012, 0, Math.PI * 2);
-        ctx.fill();
+            ctx.fill();
         });
         
-        // Draw resistors in parallel
-        drawResistor(r2X, r2Y, resistorWidth, resistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
-        drawResistor(r3X, r3Y, resistorWidth, resistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
+        // Draw resistors in parallel with increased size
+        drawResistor(r2X, r2Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor2, circuit.r2, circuit.r2Current, circuit.r2Voltage);
+        drawResistor(r3X, r3Y, adjustedResistorWidth, adjustedResistorHeight, colors.resistor3, circuit.r3, circuit.r3Current, circuit.r3Voltage);
         
-        // Store resistor positions for animation
-        circuit.resistors = [
-            { x: r1X, y: r1Y, width: resistorWidth, height: resistorHeight, type: 'r1' },
-            { x: r2X, y: r2Y, width: resistorWidth, height: resistorHeight, type: 'r2' },
-            { x: r3X, y: r3Y, width: resistorWidth, height: resistorHeight, type: 'r3' }
-        ];
-        
-        // Store wire paths for animation
-        const electronCount = Math.max(5, Math.min(20, Math.floor(circuit.totalCurrent / 2)));
-        const pathPoints = [
-            // Battery to R1
+        // Update animation paths
+        circuit.currentPathPoints = [
             { x: batteryX + batteryWidth/2, y: batteryY },
-            { x: r1X - resistorWidth/2, y: batteryY },
-            { x: r1X + resistorWidth/2, y: batteryY },
+            { x: r1X - adjustedResistorWidth/2, y: batteryY },
+            { x: r1X + adjustedResistorWidth/2, y: batteryY },
             { x: railX, y: batteryY },
             { x: railX, y: topRailY },
-            { x: railX + railLength, y: topRailY },
-            // r2 branch
             { x: r2X, y: topRailY },
             { x: r2X, y: bottomRailY },
-            { x: railX + railLength, y: bottomRailY },
-            // r3 branch
             { x: r3X, y: bottomRailY },
             { x: r3X, y: topRailY },
-            // bottom rail to battery
-            { x: railX + railLength, y: bottomRailY },
-            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY },
-            { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY },
-            { x: batteryX + batteryWidth/2, y: batteryY }
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: bottomRailY },
+            { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: batteryY },
+            { x: batteryX - batteryWidth/2, y: batteryY }
         ];
-        circuit.currentPathPoints = pathPoints;
-        circuit.currentPathLength = getPathLength(pathPoints);
+        circuit.currentPathLength = getPathLength(circuit.currentPathPoints);
 
-        // Define split and recombine points
-        const splitPoint = { x: railX, y: topRailY };
-        const recombinePoint = { x: railX + railLength, y: bottomRailY };
-        // Branch paths
+        // Update branch paths
         circuit.mixedBranchPaths = [
-            // R2 branch
             [
-                { x: splitPoint.x, y: splitPoint.y },
+                { x: railX, y: topRailY },
                 { x: r2X, y: topRailY },
                 { x: r2X, y: bottomRailY },
-                { x: recombinePoint.x, y: recombinePoint.y }
+                { x: r3X, y: bottomRailY }
             ],
-            // R3 branch
             [
-                { x: splitPoint.x, y: splitPoint.y },
+                { x: railX, y: topRailY },
                 { x: r3X, y: topRailY },
-                { x: r3X, y: bottomRailY },
-                { x: recombinePoint.x, y: recombinePoint.y }
+                { x: r3X, y: bottomRailY }
             ]
         ];
         circuit.mixedBranchCurrents = [circuit.r2Current, circuit.r3Current];
-        // Path up to split
         circuit.mixedPreSplit = [
             { x: batteryX + batteryWidth/2, y: batteryY },
-            { x: r1X - resistorWidth/2, y: batteryY },
-            { x: r1X + resistorWidth/2, y: batteryY },
+            { x: r1X - adjustedResistorWidth/2, y: batteryY },
+            { x: r1X + adjustedResistorWidth/2, y: batteryY },
             { x: railX, y: batteryY },
             { x: railX, y: topRailY }
         ];
-        circuit.mixedRecombinePoint = recombinePoint;
-        circuit.mixedReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: bottomRailY };
-        circuit.mixedReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.04, y: batteryY };
-        circuit.mixedReturnStart = { x: railX + railLength, y: bottomRailY };
+        circuit.mixedRecombinePoint = { x: r3X, y: bottomRailY };
+        circuit.mixedReturnEnd = { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: bottomRailY };
+        circuit.mixedReturnUp = { x: batteryX - batteryWidth/2 - circuitWidth*0.03, y: batteryY };
+        circuit.mixedReturnStart = { x: r3X, y: bottomRailY };
     }
     
     // Draw current flow animation
@@ -1232,6 +1226,135 @@
         ctx.arc(x, y, electronSize, 0, Math.PI * 2);
         ctx.fill();
     }
+
+    // --- Voice Feedback System ---
+    const voiceFeedback = {
+      welcome: `Welcome! This interactive visualization lets you explore series, parallel, and mixed resistor circuits. Use the circuit type buttons to switch configurations, and adjust the voltage and resistor values with the sliders. Watch how total resistance, current, and power change, and observe the electron flow animation for each circuit type.`,
+      circuitType: {
+        series: "Series circuit: All resistors are connected end to end. The same current flows through each resistor, and the total resistance is the sum of all resistors.",
+        parallel: "Parallel circuit: All resistors are connected across the same two points. The voltage is the same across each resistor, and the total resistance is less than any individual resistor.",
+        mixed: "Mixed circuit: Resistor one is in series with a parallel combination of resistors two and three. This configuration combines features of both series and parallel circuits."
+      },
+      voltage: {
+        low: "Low voltage results in a lower current throughout the circuit.",
+        medium: "Medium voltage provides a balanced current.",
+        high: "High voltage increases the current in the circuit."
+      },
+      resistor: {
+        low: "Low resistance allows more current to flow through the resistor.",
+        medium: "Medium resistance provides a balanced current.",
+        high: "High resistance restricts the current flow."
+      }
+    };
+
+    function speakFeedback(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new window.SpeechSynthesisUtterance(text);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    let voiceFeedbackEnabled = true;
+    document.getElementById('voice-toggle').addEventListener('click', function() {
+      voiceFeedbackEnabled = !voiceFeedbackEnabled;
+      this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+      this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+      if (!voiceFeedbackEnabled) {
+        window.speechSynthesis.cancel();
+      }
+    });
+
+    // Voice-over functionality
+    const voiceoverText = voiceFeedback.welcome;
+    function playVoiceover() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    // --- Add voice feedback to controls ---
+    // Circuit type buttons
+    document.getElementById('seriesBtn').addEventListener('click', () => {
+      if (voiceFeedbackEnabled) speakFeedback(voiceFeedback.circuitType.series);
+    });
+    document.getElementById('parallelBtn').addEventListener('click', () => {
+      if (voiceFeedbackEnabled) speakFeedback(voiceFeedback.circuitType.parallel);
+    });
+    document.getElementById('mixedBtn').addEventListener('click', () => {
+      if (voiceFeedbackEnabled) speakFeedback(voiceFeedback.circuitType.mixed);
+    });
+    // Voltage slider
+    document.getElementById('voltageSlider').addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      if (voiceFeedbackEnabled) {
+        if (v <= 4) speakFeedback(voiceFeedback.voltage.low);
+        else if (v <= 8) speakFeedback(voiceFeedback.voltage.medium);
+        else speakFeedback(voiceFeedback.voltage.high);
+      }
+    });
+    // R1 slider
+    document.getElementById('r1Slider').addEventListener('input', (e) => {
+      const r = parseFloat(e.target.value);
+      if (voiceFeedbackEnabled) {
+        if (r <= 700) speakFeedback(voiceFeedback.resistor.low);
+        else if (r <= 1300) speakFeedback(voiceFeedback.resistor.medium);
+        else speakFeedback(voiceFeedback.resistor.high);
+      }
+    });
+    // R2 slider
+    document.getElementById('r2Slider').addEventListener('input', (e) => {
+      const r = parseFloat(e.target.value);
+      if (voiceFeedbackEnabled) {
+        if (r <= 700) speakFeedback(voiceFeedback.resistor.low);
+        else if (r <= 1300) speakFeedback(voiceFeedback.resistor.medium);
+        else speakFeedback(voiceFeedback.resistor.high);
+      }
+    });
+    // R3 slider
+    document.getElementById('r3Slider').addEventListener('input', (e) => {
+      const r = parseFloat(e.target.value);
+      if (voiceFeedbackEnabled) {
+        if (r <= 700) speakFeedback(voiceFeedback.resistor.low);
+        else if (r <= 1300) speakFeedback(voiceFeedback.resistor.medium);
+        else speakFeedback(voiceFeedback.resistor.high);
+      }
+    });
+    // Modal controls
+    document.getElementById('play-voiceover').addEventListener('click', playVoiceover);
+    document.getElementById('close-instruction').addEventListener('click', function() {
+      document.getElementById('instruction-modal').style.display = 'none';
+      window.speechSynthesis.cancel();
+    });
+    // Show modal and play voiceover on load
+    window.addEventListener('load', function() {
+      document.getElementById('instruction-modal').style.display = 'flex';
+      setTimeout(playVoiceover, 1000);
+    });
+    // Pause/resume voice on tab visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        window.speechSynthesis.pause();
+      } else {
+        window.speechSynthesis.resume();
+      }
+    });
   </script>
 </body>
 </html> 

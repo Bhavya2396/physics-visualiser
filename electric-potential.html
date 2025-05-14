@@ -180,6 +180,30 @@
 </head>
 <body>
     <div class="container">
+        <!-- Instruction Modal (hidden by default) -->
+        <div id="instruction-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(20,24,32,0.82); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:rgba(35,39,46,0.98); color:#fff; border-radius:14px; padding:32px 32px 24px 32px; box-shadow:0 4px 32px #0006; max-width:480px; width:90vw; font-size:1.13rem; line-height:1.6; position:relative;">
+                <strong>How to use this visualization:</strong><br>
+                Welcome! This interactive visualization demonstrates <b>electric potential and current flow</b> in a simple circuit.<br>
+                <ul style="margin:10px 0 0 18px;">
+                    <li>Use the <b>Voltage</b> slider to adjust the battery voltage (1-12V).</li>
+                    <li>Observe how the current and battery energy change as you adjust the voltage.</li>
+                    <li>Watch the animation to see electrons moving through the circuit and the battery discharging.</li>
+                </ul>
+                <span style="color:#4a9eff;">Try different voltages to see how they affect current and battery energy!</span>
+                <div style="margin-top:18px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button id="play-voiceover" style="background:#4a9eff; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">🔊 Replay Voice-over</button>
+                    <button id="close-instruction" style="background:#222; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:1rem; cursor:pointer;">Close</button>
+                </div>
+            </div>
+        </div>
+        <!-- Voice Toggle Button -->
+        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+            <label style="color: var(--accent); font-size: 14px;">Voice Feedback:</label>
+            <button id="voice-toggle" style="background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer;">
+                🔊 Enabled
+            </button>
+        </div>
         <div class="visualization-panel">
             <div class="canvas-container">
                 <canvas id="potential-canvas" width="700" height="320"></canvas>
@@ -585,6 +609,90 @@ document.getElementById('playPauseBtn').addEventListener('click', () => {
 window.addEventListener('resize', () => {
     location.reload();
         });
+
+// --- Voice Feedback System ---
+const voiceFeedback = {
+    welcome: `Welcome! This interactive visualization lets you explore electric potential and current flow in a simple circuit. Use the voltage slider to adjust the battery voltage. Watch how the current and battery energy change, and observe the animation of electrons moving through the circuit.`,
+    voltage: {
+        low: "Low voltage results in a lower current and slower electron movement.",
+        medium: "Medium voltage provides a balanced current and moderate electron speed.",
+        high: "High voltage increases the current and makes electrons move faster."
+    }
+};
+
+function speakFeedback(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new window.SpeechSynthesisUtterance(text);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+let voiceFeedbackEnabled = true;
+document.getElementById('voice-toggle').addEventListener('click', function() {
+    voiceFeedbackEnabled = !voiceFeedbackEnabled;
+    this.innerHTML = voiceFeedbackEnabled ? '🔊 Enabled' : '🔇 Disabled';
+    this.style.background = voiceFeedbackEnabled ? 'var(--accent)' : '#666';
+    if (!voiceFeedbackEnabled) {
+        window.speechSynthesis.cancel();
+    }
+});
+
+// Voice-over functionality
+const voiceoverText = voiceFeedback.welcome;
+function playVoiceover() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new window.SpeechSynthesisUtterance(voiceoverText);
+        utter.rate = 1.03;
+        utter.pitch = 1.05;
+        utter.volume = 0.95;
+        utter.lang = 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('natural'));
+        if (preferred) utter.voice = preferred;
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+// Add voice feedback to voltage slider
+const voltageSlider = document.getElementById('voltageSlider');
+voltageSlider.addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    if (voiceFeedbackEnabled) {
+        if (v <= 4) speakFeedback(voiceFeedback.voltage.low);
+        else if (v <= 8) speakFeedback(voiceFeedback.voltage.medium);
+        else speakFeedback(voiceFeedback.voltage.high);
+    }
+});
+// Modal controls
+
+document.getElementById('play-voiceover').addEventListener('click', playVoiceover);
+document.getElementById('close-instruction').addEventListener('click', function() {
+    document.getElementById('instruction-modal').style.display = 'none';
+    window.speechSynthesis.cancel();
+});
+// Show modal and play voiceover on load
+window.addEventListener('load', function() {
+    document.getElementById('instruction-modal').style.display = 'flex';
+    setTimeout(playVoiceover, 1000);
+});
+// Pause/resume voice on tab visibility change
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        window.speechSynthesis.pause();
+    } else {
+        window.speechSynthesis.resume();
+    }
+});
     </script>
 </body>
 </html> 
